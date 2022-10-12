@@ -5,15 +5,13 @@ function App() {
   const [data, setData] = useState([{}])
 
   useEffect(() => 
-    {
-      fetch('/users').then(
-        response => response.json()
-      ).then(
-        data => {
-          setData(data);
-          console.log(data);
-        }
-      ).catch((err) => console.log(err))
+    {fetch("/users").then(
+      response => response.json()
+    ).then(
+      data => {
+        setData(data);
+      }
+    ).catch((err) => console.log(err))
     }, [])
 
   return (
