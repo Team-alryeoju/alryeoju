@@ -16,11 +16,11 @@ cursor = conn.cursor()
 #cursor.execute(create_table)
 
 #csv파일 오픈
-file = open('buy_info.csv',encoding='utf-8-sig')
-contents = csv.reader(file)
+# file = open('buy_info.csv',encoding='utf-8-sig')
+# contents = csv.reader(file)
 
-insert_records = 'INSERT INTO buy_info(al_id, u_id, datetime) values (?,?,?)'
-cursor.executemany(insert_records, contents)
+# insert_records = 'INSERT INTO buy_info(al_id, u_id, datetime) values (?,?,?)'
+# cursor.executemany(insert_records, contents)
 
 select_all = "SELECT * FROM buy_info"
 rows = cursor.execute(select_all).fetchall()

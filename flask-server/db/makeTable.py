@@ -62,7 +62,7 @@ create table item_profile(
 	곡물_옥수수_보리 REAL,
 	기타_커피_캐러멜_토란 REAL,
 	깔끔 REAL,
-	꿀맛_당류 REAL,
+	꿀맛_당류REAL,
 	누룩 REAL,
 	다양 REAL,
 	단맛 REAL,
@@ -103,8 +103,6 @@ conn.execute(
 create table reviews(
 	u_id integer,
 	u_name varchar(20),
-	al_id integer,
-	al_name varchar(50),
 	score real,
 	datetime text,
 	constraint reviews_fk foreign key(u_id) references users(u_id)
@@ -117,7 +115,7 @@ create table users(
     u_id integer primary key autoincrement,
 	user_sign_id  varchar(30) unique not null,
 	user_sign_pw varchar(50),
-	u_name varchar(30) unique
+	u_name varchar(10) unique
 )
 '''
 )
@@ -127,24 +125,10 @@ conn.execute(
 create table item_info(
 	al_id integer primary key autoincrement,
 	al_name varchar(50),
-	category varchar(30),
-	degree real,
-	sweet integer,
-	acid integer,
-	light integer,
-	body integer,
-	carbon integer,
-	bitter integer,
-	tannin integer,
-	nutty integer,
-	bright integer,
-	strength integer,
-	spicy integer,
 	img_link text,
 	detail text
 )
 '''
-
 )
 conn.execute(
 '''
