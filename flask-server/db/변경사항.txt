@@ -1,6 +1,7 @@
 1. makeTable.py
 노션에 있는 내용 작성한 파일 - 디비안에 테이블 생성
 *오류나는 부분 수정 함
+*item_info table schema 수정(degree, category...추가)
 
 2. csv2db.py
 csv file을 한 행씩 읽어서 디비에 저장하는 파일 
@@ -37,7 +38,7 @@ file = open('user_info.csv',encoding='utf-8-sig')
 insert_records = 'INSERT INTO users(u_id, user_sign_id, user_sign_pw, u_name) values(?,?,?,?)'
 select_all = "SELECT * FROM users"
 
-#item_info - item_info.csv
+#item_info - item_info.csv -> item_info_new.csv로 변경
 file = open('item_info.csv',encoding='utf-8-sig')
 insert_records = 'INSERT INTO item_info(al_id, al_name, img_link, detail) values(?,?,?,?)'
 select_all = "SELECT * FROM item_info"
