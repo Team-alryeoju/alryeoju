@@ -1,69 +1,68 @@
+from lib2to3.pgen2 import token
 import pandas as pd
 import numpy as np
+import sqlite3
+import pprint
 
-# 개별 사용자-토큰 정보 가져오기  :  이후 sql로 대체
-users_data = pd.read_csv('./db_csv/user_token.csv', encoding='cp949')
-# 아이템 정보
-items_data = pd.read_csv('./db_csv/id_token_img.csv', encoding='cp949')
-# 술 기본 정보
-sools_info = pd.read_csv('./db_csv/sool-detail.csv', encoding='cp949')
-# 사용자별 아이템 순위
-# raking[n]  :  n 번째 사용자의 알콜 추천 순위
-rankings = pd.read_csv('./db_csv/ranking_new.csv')
+token_list = ['감칠맛', '걸쭉함', '견과류_땅콩_잣향', '고소함', '곡물_옥수수_보리', '기타_커피_캐러멜_토란',
+       '깔끔', '꿀맛_당류', '누룩', '다양', '단맛', '독특', '드라이', '레몬_유자류_감귤류_자몽',
+       '매실류_파인애플', '바나나_망고_멜론', '바닐라_국화_매화_연꽃_유채꽃_꽃향', '베리류_딸기', '사과_배_감',
+       '스모키한', '신맛', '여운', '열대과일', '오디_복분자', '오미자류', '음료', '인삼_생강강황_약재',
+       '자두_복숭아_체리', '잔잔한', '조화', '진득', '청_포도', '청량', '탄닌감', '탄산', '풀내음_나무_볏짚',
+       '허브_시트러스', '화끈함']
 
-
-
+# 디테일 페이지 만들기
 class detail_info:
     def __init__(self, cid, alid):
+        self.conn = sqlite3.connect('flask-server\\db\\alryeoju.db')
+        self.cursor = self.conn.cursor()
         self.c_id = cid
         self.al_id = alid
-        self.c_name = ''
-        self.al_name = ''
-        self.al_img = ''
+        query = "select img_link from item_info where al_id = " + str(alid)
+        user_token = self.cursor.execute(query).fetchone()
+        self.img_link = user_token[0]
+        
+    # 사용자 별 토큰 값 가져오기
+    def select_user_token(self, c_id):
+        query = "select * from user_profile where u_id=" +  str(c_id)
+        user_token = self.cursor.execute(query).fetchall()
+        # 리스트 타입 반환
+        df = pd.DataFrame(data = {'tokens':user_token[0][1:]}).replace('', 0)
+        df.index = token_list
+        return df
+    
+    # 아이템 별 토큰 값 가져오기
+    def select_al_token(self, al_id):
+        query = "select * from item_profile where al_id=" +  str(al_id)
+        al_token = self.cursor.execute(query).fetchall()
+        # 리스트 타입 반환  :  0번째는 u_id
+        df = pd.DataFrame(data = {'tokens':al_token[0][1:]}).replace('', 0)
+        df.index = token_list
+        return df
 
 
-    def search_al_id_token(self, al_id):
-        # sql로 대체,,
-        al_info = items_data.loc[items_data['id'] == al_id]
-        self.al_name = al_info['alname']
-        self.al_img = al_info['img'].to_list()[0]
-        al_info.drop(columns=['alname','img'], inplace=True)
-        return al_info
-
-    def search_user_token(self, c_id):
-        # sql로 대체,,
-        user_info = users_data.loc[users_data['c_id'] == c_id]
-        self.c_name = user_info['c_name']
-        user_info.drop(columns=['c_name'], inplace=True)
-        return user_info
-
+    # 사용자 별 알콜에 대한 토큰 선호도 순위
     def get_token_rank(self):
-        # 셋팅  :  사용자, 술 아이디 설정 및 해당 데이터 가져오기
-        al_info = self.search_al_id_token(self.al_id)
-        user_info = self.search_user_token(self.c_id)
+        al_token = self.select_al_token(self.al_id)
+        user_token = self.select_user_token(self.c_id)
 
-        # 토큰 칼럼만 남김
-        user_info.drop(columns = ['c_id'], inplace = True)  
-        al_info.drop(columns=['id'], inplace = True)
-
-
-        al_tokens = al_info.replace(0, np.NAN).T.dropna().index.to_list()
-        user_token_score = user_info.replace(0, np.NaN).T.dropna()
+        al_tokens = al_token.replace(0, np.NAN).dropna().index.to_list()
+        user_token_score = user_token.replace(0, np.NaN).dropna()
         user_token_score.reset_index(inplace=True)
-        token_seq = user_token_score[user_token_score['index'].isin(al_tokens)].sort_values(by = self.c_id, ascending=False)
+        token_seq = user_token_score[user_token_score['index'].isin(al_tokens)].sort_values(by = 'tokens', ascending=False)
         token_rank = token_seq['index'].values.tolist()
         return token_rank
-
-
-
-####################################
+    
 
 class item_list:
-
     def __init__(self, cid):
+        self.conn = sqlite3.connect('flask-server\\db\\alryeoju.db')
+        self.cursor = self.conn.cursor()
         self.c_id = cid
 
-    def get_top15_df(self):
+    def get_top15(self):
+
+        rankings = pd.read_csv('flask-server\\db\\db_csv_data\\ranking_new.csv')
         rankings_t = rankings.reset_index().drop(columns='index').T
         rankings_t.reset_index(inplace=True)
 
@@ -73,49 +72,29 @@ class item_list:
         # merge를 위해 인덱스 리셋
         rank_df.index = np.arange(1, 16)
         rank_df['al_name'] = rankings_t[self.c_id][1:16]
-        rank_df = pd.merge(rank_df, items_data[['alname', 'id', 'img']], left_on='al_name', right_on='alname', how='inner').drop(columns='alname')
+        al_name_tuple = tuple(rank_df['al_name'].values.tolist())
+
+        # top15에 해당하는 알콜 이름으로 쿼리 날림
+        query = "select al_name, al_id, img_link, category, degree from item_info where al_name in " +  str(al_name_tuple)
+        al_token = self.cursor.execute(query).fetchall()
+        al_df = pd.DataFrame(al_token, columns=['al_name', 'al_id', 'img_link', 'category', 'degree'])
+
+        rank_df = pd.merge(rank_df, al_df, on='al_name', how='inner')
         rank_df['c_id'] = self.c_id
 
-        # sool_info에서 category, degree, snack 칼럼 추가
-        sool_info = sools_info[['id', 'category', 'degree', 'alname', 'snack']].copy()
-        rank_df = pd.merge(rank_df, sool_info, on='id', how='inner').drop(columns='alname')
-        rank_df = rank_df[['rank', 'id', 'al_name', 'category', 'degree', 'snack', 'c_id', 'img']]        
-        
         return rank_df
 
     def get_top15_json(self):
-        rank_df = self.get_top15_df()
+        rank_df = self.get_top15()
         return rank_df.T.to_json(force_ascii=False)
 
-    def get_alcohols_df(self):
-        sool_info = sools_info[['id', 'category', 'degree', 'alname', 'snack']]
-        item_data = items_data[['alname', 'id', 'img']] 
-        items = pd.merge(sool_info, item_data, on='id', how='inner').drop(columns='alname_x').rename(columns={'alname_y':'al_name'})
-        items['c_id'] = self.c_id
-        items = items[['id', 'al_name', 'category', 'degree', 'snack', 'c_id', 'img']]
-        return items
-
-    def get_takju_json(self):
-        sool = self.get_alcohols_df()
-        takju = sool.loc[sool['category'] == '탁주']
-        return takju.T.to_json(force_ascii=False)
-
-    def get_yackju_json(self):
-        sool = self.get_alcohols_df()
-        takju = sool.loc[sool['category'] == '약주']
-        return takju.T.to_json(force_ascii=False)
+    def get_alcohols_df(self, category):
+        query = "select al_name, al_id, img_link, category, degree from item_info where category = '" + category + "'"
+        al_token = self.cursor.execute(query).fetchall()
+        al_df = pd.DataFrame(al_token, columns=['al_name', 'al_id', 'img_link', 'category', 'degree'])        
+        al_df = al_df.sample(frac=1)
+        return al_df
     
-    def get_wine_json(self):
-        sool = self.get_alcohols_df()
-        takju = sool.loc[sool['category'] == '과실주']
-        return takju.T.to_json(force_ascii=False)
-
-    def get_soju_json(self):
-        sool = self.get_alcohols_df()
-        takju = sool.loc[sool['category'] == '일반증류주']
-        return takju.T.to_json(force_ascii=False)
-    
-    def get_alcohol_random_json(self):
-        sool = self.get_alcohols_df()
-        sool = sool.sample(frac=1)
-        return sool.T.to_json(force_ascii=False)
+    def get_alcohols_json(self, category):
+        al_df = self.get_alcohols_df(category)
+        return al_df.T.to_json(force_ascii=False)
