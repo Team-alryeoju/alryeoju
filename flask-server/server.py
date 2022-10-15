@@ -1,7 +1,15 @@
 from flask import Flask, render_template, request
 from detail import detail_info, item_list
 
+from flask_cors import CORS
+
 app = Flask(__name__)
+
+# 모든 도메인에 CORS 적용
+# CORS(app)
+
+# 특정 도메인에만 적용
+CORS(app, resources={r'*': {'origins': 'http://localhost:3000'}})
 
 # 디테일페이지에서 사용하는 것
 # token_rank는 리스트 형태
@@ -18,7 +26,7 @@ def detail():
 
 
 # 사용자별 아이템 15개 추천
-@app.rount("/recomm")
+@app.route("/recomm")
 def recomm():
     # c_id = request.args.get('id')
     # recom_data = item_list(c_id)
@@ -28,7 +36,7 @@ def recomm():
 
 
 # 전체(266개?) 행을 랜덤하게 섞어서 json으로 반환
-@app.rount("/random")
+@app.route("/random")
 def random_items():
     # c_id를 요구해서 아무 값이나 넣으면 됨,,
     item_lst = item_list(-1)
@@ -36,7 +44,7 @@ def random_items():
 
 
 # 탁주 json
-@app.rout("/takju_list")
+@app.route("/takju_list")
 def takju_list():
     # c_id를 요구해서 아무 값이나 넣으면 됨,,
     item_lst = item_list(-1)
@@ -44,7 +52,7 @@ def takju_list():
 
 
 # 약주 json
-@app.rout("/yackju_list")
+@app.route("/yackju_list")
 def yackkju_list():
     # c_id를 요구해서 아무 값이나 넣으면 됨,,
     item_lst = item_list(-1)
@@ -52,19 +60,19 @@ def yackkju_list():
 
 
 # 과실주 json
-@app.rout("/wine_list")
-def takju_list():
+@app.route("/wine_list")
+def wine_list():
     # c_id를 요구해서 아무 값이나 넣으면 됨,,
     item_lst = item_list(-1)
     return item_lst.get_wine_json()
 
 
 # 증류주 json
-@app.rout("/soju_list")
-def takju_list():
+@app.route("/soju_list")
+def soju_list():
     # c_id를 요구해서 아무 값이나 넣으면 됨,,
     item_lst = item_list(-1)
-    return item_lst.get_alcohol_random_json()
+    return item_lst.get_soju_json()
 
 
 if __name__ == "__main__":
