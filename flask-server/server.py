@@ -1,7 +1,17 @@
 from flask import Flask, render_template, request
 from detail import detail_info, item_list
+# from flask_cors import CORS
 
-app = Flask(__name__)
+# app = Flask(__name__)
+
+
+# # 모든 도메인에 CORS 적용
+# # CORS(app)
+
+# # 특정 도메인에만 적용
+# CORS(app, resources={r'*': {'origins': 'http://localhost:3000'}})
+
+
 
 # 디테일페이지에서 사용하는 것
 # token_rank는 리스트 형태
