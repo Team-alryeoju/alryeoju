@@ -1,15 +1,17 @@
-from flask import Flask, render_template, request
+#-*- coding:utf-8 -*-
+
+from flask import Flask, request
 from detail import detail_info, item_list
-# from flask_cors import CORS
+from flask_cors import CORS
 
-# app = Flask(__name__)
+app = Flask(__name__)
 
 
-# # 모든 도메인에 CORS 적용
-# # CORS(app)
+## 모든 도메인에 CORS 적용
+# CORS(app)
 
-# # 특정 도메인에만 적용
-# CORS(app, resources={r'*': {'origins': 'http://localhost:3000'}})
+# 특정 도메인에만 적용
+CORS(app, resources={r'*': {'origins': 'http://localhost:3000'}})
 
 
 
@@ -41,10 +43,10 @@ def recomm():
 @app.route("/alcohol")
 def alcohol_list():
     # c_id = request.args.get('id')
-    # category = request.args.get('category')
+    category = request.args.get('category')
     # c_id를 요구해서 아무 값이나 넣으면 됨,,
     item_lst = item_list(-1)
-    return item_lst.get_alcohols_json('wine')
+    return item_lst.get_alcohols_json(category)
 
 
 

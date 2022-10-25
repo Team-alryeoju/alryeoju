@@ -14,7 +14,7 @@ token_list = ['감칠맛', '걸쭉함', '견과류_땅콩_잣향', '고소함', 
 # 디테일 페이지 만들기
 class detail_info:
     def __init__(self, cid, alid):
-        self.conn = sqlite3.connect('flask-server\\db\\alryeoju.db')
+        self.conn = sqlite3.connect('./db/alryeoju.db')
         self.cursor = self.conn.cursor()
         self.c_id = cid
         self.al_id = alid
@@ -56,13 +56,13 @@ class detail_info:
 
 class item_list:
     def __init__(self, cid):
-        self.conn = sqlite3.connect('flask-server\\db\\alryeoju.db')
+        self.conn = sqlite3.connect('./db/alryeoju.db')
         self.cursor = self.conn.cursor()
         self.c_id = cid
 
     def get_top15(self):
 
-        rankings = pd.read_csv('flask-server\\db\\db_csv_data\\ranking_new.csv')
+        rankings = pd.read_csv('./db/db_csv_data/ranking_new.csv')
         rankings_t = rankings.reset_index().drop(columns='index').T
         rankings_t.reset_index(inplace=True)
 
@@ -88,7 +88,15 @@ class item_list:
         rank_df = self.get_top15()
         return rank_df.T.to_json(force_ascii=False)
 
-    def get_alcohols_df(self, category):
+    
+    def get_all_alcohols_df(self):
+        query = "select al_name, al_id, img_link, category, degree from item_info"
+        al_token = self.cursor.execute(query).fetchall()
+        al_df = pd.DataFrame(al_token, columns=['al_name', 'al_id', 'img_link', 'category', 'degree'])        
+        al_df = al_df.sample(frac=1)
+        return al_df
+
+    def get_alcohols_df_by_category(self, category):
         query = "select al_name, al_id, img_link, category, degree from item_info where category = '" + category + "'"
         al_token = self.cursor.execute(query).fetchall()
         al_df = pd.DataFrame(al_token, columns=['al_name', 'al_id', 'img_link', 'category', 'degree'])        
@@ -96,5 +104,9 @@ class item_list:
         return al_df
     
     def get_alcohols_json(self, category):
-        al_df = self.get_alcohols_df(category)
+        if(category == None):
+            # 지정된 카테고리 없으면 전체 데이터 출력 
+            al_df = self.get_all_alcohols_df()
+        else:
+            al_df = self.get_alcohols_df_by_category(category)
         return al_df.T.to_json(force_ascii=False)
