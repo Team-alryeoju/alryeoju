@@ -14,7 +14,10 @@ token_list = ['감칠맛', '걸쭉함', '견과류_땅콩_잣향', '고소함', 
 # 디테일 페이지 만들기
 class detail_info:
     def __init__(self, cid, alid):
-        self.conn = sqlite3.connect('./db/alryeoju.db')
+        # max
+        # self.conn = sqlite3.connect('./db/alryeoju.db')
+        # window  :  mac도 가능한가 확인 좀,,
+        self.conn = sqlite3.connect('flask-server/db/alryeoju.db')
         self.cursor = self.conn.cursor()
         self.c_id = cid
         self.al_id = alid
@@ -56,7 +59,7 @@ class detail_info:
 
 class item_list:
     def __init__(self, cid):
-        self.conn = sqlite3.connect('./db/alryeoju.db')
+        self.conn = sqlite3.connect('flask-server/db/alryeoju.db')
         self.cursor = self.conn.cursor()
         self.c_id = cid
 
@@ -88,7 +91,6 @@ class item_list:
         rank_df = self.get_top15()
         return rank_df.T.to_json(force_ascii=False)
 
-    
     def get_all_alcohols_df(self):
         query = "select al_name, al_id, img_link, category, degree from item_info"
         al_token = self.cursor.execute(query).fetchall()
@@ -110,3 +112,44 @@ class item_list:
         else:
             al_df = self.get_alcohols_df_by_category(category)
         return al_df.T.to_json(force_ascii=False)
+
+
+
+class user_sign:
+    def __init__(self):
+        self.conn = sqlite3.connect('flask-server/db/alryeoju.db')
+        self.cursor = self.conn.cursor()
+
+    def sign_in(self, user_sign_id, user_sign_pw):
+        query = "select * from users where user_sign_id='" + user_sign_id + "' and user_sign_pw = '" + user_sign_pw + "'"
+        result = self.cursor.execute(query).fetchall()
+        
+        if len(result) == 0:
+            return 'False'
+        else:
+            self.c_id = result[0][0]
+            self.c_name = result[0][3]
+            return (self.c_id, self.c_name)
+
+    def duplicate_check(self, c_id):
+        query = "select count(*) from users where user_sign_id='" + c_id + "'"
+        result = self.cursor.execute(query).fetchall()
+
+        if result[0][0] == 0:
+            return 1
+        else:
+            return 0
+    
+    def sign_up(self, user_sign_id, user_sign_pw, u_name):
+        query01 = 'select u_id from users order by rowid desc limit 1'
+        last_u_id = self.cursor.execute(query01).fetchall()[0][0]
+        
+        query02 = "insert into users (u_id, user_sign_id, user_sign_pw, u_name) values (?, ?, ?, ?)"
+        data = (last_u_id + 1, user_sign_id, user_sign_pw, u_name)
+        try:
+            self.cursor.execute(query02, data)
+            self.conn.commit()
+            return 1
+        except:
+            return 0
+        
