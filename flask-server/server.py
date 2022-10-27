@@ -1,19 +1,15 @@
 #-*- coding:utf-8 -*-
 
-from flask import Flask, request
+from crypt import methods
+from flask import Flask, jsonify, request
 from detail import detail_info, item_list, user_sign
-# from flask_cors import CORS
+from flask_cors import CORS
 
 app = Flask(__name__)
 
-
-## 모든 도메인에 CORS 적용
-
-
 # 특정 도메인에만 적용
-# CORS(app, resources={r'*': {'origins': 'http://localhost:3000'}})
-
-
+## client 와 쿠키를 주고 받기 위해선 'supports_credentials=True
+CORS(app, resources={r'*': {'origins': 'http://localhost:3000'}}, supports_credentials=True)
 
 # 디테일페이지에서 사용하는 것
 # token_rank는 리스트 형태
@@ -79,8 +75,8 @@ def duplicate_check():
     # 회원가입 성공하면 return 1 else 0
 @app.route("/signup", methods=['POST'])
 def sign_up():
-    user_id = request.form['id']
-    user_pw = request.form['pw']
+    user_id = request.json['id']
+    user_pw = request.json['pw']
     user_name = request.form['u_name']
 
     user = user_sign()
