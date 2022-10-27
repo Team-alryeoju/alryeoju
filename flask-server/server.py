@@ -1,17 +1,23 @@
 #-*- coding:utf-8 -*-
-
-from flask import Flask, request
+import json
+from flask import Flask, request, session, jsonify
 from detail import detail_info, item_list, user_sign
-# from flask_cors import CORS
+from flask_cors import CORS
+from flask.ext.session import Session
+from flask_jwt_extended import JWTManager, jwt_required, jwt_optional, create_access_token, get_jwt_identity, get_jwt_claims
+from datetime import timedelta
 
 app = Flask(__name__)
+app.config["JWT_SECRET_KEY"] = "key"
+app.config["SECRET_KEY"] = "pass"
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
+app.config["SESSION_TYPE"] = 'filesystem'
+app.config["SESSION_PERMANENT"] = False
+# app.config.from_object(__name__)
 
-
-## 모든 도메인에 CORS 적용
-
-
-# 특정 도메인에만 적용
-# CORS(app, resources={r'*': {'origins': 'http://localhost:3000'}})
+CORS(app, resources={r'*': {'origins': 'http://localhost:3000'}})
+Session(app)
+jwt = JWTManager(app)
 
 
 
@@ -20,12 +26,13 @@ app = Flask(__name__)
 # img_link는 str type
 @app.route("/detail")
 def detail():
-    c_id = request.args.get('id')
+    c_id = session["id"]
     al_id = request.args.get('al_id')
     detail_data = detail_info(c_id, al_id)
     token_rank = detail_data.get_token_rank()  # 주석금지
     img_link = detail_data.img_link
-    return {'token_rank' : token_rank, 'img_link' : img_link}
+    return jsonify({'token_rank' : token_rank, 'img_link' : img_link})
+
 
 
 # 사용자별 아이템 15개 추천
@@ -35,6 +42,7 @@ def recomm():
     recom_data = item_list(c_id)
     # 칼럼 순서  :  'al_name', 'al_id', 'img_link', 'category', 'degree'
     return recom_data.get_top15_json()
+
 
 
 # 주종 별 알콜 리스트
@@ -47,20 +55,25 @@ def alcohol_list():
 
 
 
-# 로그인 확인  :  id, pw 넘겨받음
-    # 성공하면 사용자 번호(c_id), 닉네임(c_name) 넘겨받음
-@app.route("/signin", methods=['POST'])
+# 로그인 후 세션 넘기기
+@app.route('/signin', methods=["POST"])
 def signin():
-    user_id = request.form['id']
-    user_pw = request.form['pw']
+    user_id = json.loads(request.data)["id"]
+    user_pw = json.loads(request.data)["pw"]
 
     user = user_sign()
     result = user.sign_in(user_id, user_pw)
 
-    if result == 'False':
-        return 'False'
-    else:
-        return result
+    if(result == 'True'):
+       session["id"] = id
+       access_token = create_access_token(identity=id)
+       response = app.response_class(response=json.dumps({"access_token": access_token}),
+                                  status=200,
+                                  mimetype='application/json')
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
+
+
 
 
 
@@ -75,6 +88,7 @@ def duplicate_check():
 
 
 
+
 # 회원가입  :  u_id, u_pw, u_name 필요
     # 회원가입 성공하면 return 1 else 0
 @app.route("/signup", methods=['POST'])
@@ -85,6 +99,7 @@ def sign_up():
 
     user = user_sign()
     return [user.sign_up(user_id, user_pw, user_name)]
+
 
 
 
