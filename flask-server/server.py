@@ -1,6 +1,5 @@
 #-*- coding:utf-8 -*-
 import json
-import os
 from flask import Flask, request, session, jsonify
 from detail import detail_info, item_list, user_sign
 from flask_cors import CORS
@@ -80,7 +79,7 @@ def duplicate_check():
     user_id = request.form['id']
     
     user = user_sign()
-    return [user.duplicate_check(user_id)]
+    return jsonify(user.duplicate_check(user_id))
 
 
 
@@ -93,9 +92,13 @@ def sign_up():
     user_pw = request.json['pw']
     user_name = request.json['u_name']
     user = user_sign()
-    return [user.sign_up(user_id, user_pw, user_name)]
+    return jsonify(user.sign_up(user_id, user_pw, user_name))
 
 
+
+@app.route('/logout')
+def logout():
+    session.pop('id', None)
 
 
 if __name__ == "__main__":
