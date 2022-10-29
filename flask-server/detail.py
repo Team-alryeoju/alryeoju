@@ -17,7 +17,7 @@ class detail_info:
         # max
         # self.conn = sqlite3.connect('./db/alryeoju.db')
         # window  :  mac도 가능한가 확인 좀,,
-        self.conn = sqlite3.connect('flask-server/db/alryeoju.db')
+        self.conn = sqlite3.connect('./db/alryeoju.db')
         self.cursor = self.conn.cursor()
         self.c_id = cid
         self.al_id = alid
@@ -59,7 +59,7 @@ class detail_info:
 
 class item_list:
     def __init__(self, cid):
-        self.conn = sqlite3.connect('flask-server/db/alryeoju.db')
+        self.conn = sqlite3.connect('./db/alryeoju.db')
         self.cursor = self.conn.cursor()
         self.c_id = cid
 
@@ -117,7 +117,7 @@ class item_list:
 
 class user_sign:
     def __init__(self):
-        self.conn = sqlite3.connect('flask-server/db/alryeoju.db')
+        self.conn = sqlite3.connect('./db/alryeoju.db')
         self.cursor = self.conn.cursor()
 
     def sign_in(self, user_sign_id, user_sign_pw):

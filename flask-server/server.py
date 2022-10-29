@@ -1,23 +1,21 @@
 #-*- coding:utf-8 -*-
 import json
+import os
 from flask import Flask, request, session, jsonify
 from detail import detail_info, item_list, user_sign
 from flask_cors import CORS
-from flask.ext.session import Session
-from flask_jwt_extended import JWTManager, jwt_required, jwt_optional, create_access_token, get_jwt_identity, get_jwt_claims
+from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required, JWTManager
 from datetime import timedelta
 
+# app
 app = Flask(__name__)
-app.config["JWT_SECRET_KEY"] = "key"
-app.config["SECRET_KEY"] = "pass"
-app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
-app.config["SESSION_TYPE"] = 'filesystem'
-app.config["SESSION_PERMANENT"] = False
-# app.config.from_object(__name__)
 
-CORS(app, resources={r'*': {'origins': 'http://localhost:3000'}})
-Session(app)
+# jwt
+app.config["JWT_SECRET_KEY"] = 'qwlkjduoqlwkejhf1298739184'
+app.config["JWT_ALGORITHM"] = "HS256"
 jwt = JWTManager(app)
+
+CORS(app, resources={r'*': {'origins': 'http://localhost:3000'}}, supports_credentials=True)
 
 
 
@@ -58,21 +56,19 @@ def alcohol_list():
 # 로그인 후 세션 넘기기
 @app.route('/signin', methods=["POST"])
 def signin():
-    user_id = json.loads(request.data)["id"]
-    user_pw = json.loads(request.data)["pw"]
+    user_id = request.json['id']
+    user_pw = request.json['pw']
 
     user = user_sign()
     result = user.sign_in(user_id, user_pw)
 
-    if(result == 'True'):
-       session["id"] = id
-       access_token = create_access_token(identity=id)
-       response = app.response_class(response=json.dumps({"access_token": access_token}),
-                                  status=200,
-                                  mimetype='application/json')
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    return response
-
+    # 존재하는 계정이 없는 경우 : 401 Unauthorized
+    if(result == 'False'):
+        return jsonify({"msg": "Bad username or password"}), 401  
+    
+    # 계정이 존재 -> access_token 생성 : 200 OK
+    access_token = create_access_token(identity=user_id)
+    return jsonify(access_token=access_token)
 
 
 
@@ -93,10 +89,9 @@ def duplicate_check():
     # 회원가입 성공하면 return 1 else 0
 @app.route("/signup", methods=['POST'])
 def sign_up():
-    user_id = request.form['id']
-    user_pw = request.form['pw']
-    user_name = request.form['u_name']
-
+    user_id = request.json['id']
+    user_pw = request.json['pw']
+    user_name = request.json['u_name']
     user = user_sign()
     return [user.sign_up(user_id, user_pw, user_name)]
 
