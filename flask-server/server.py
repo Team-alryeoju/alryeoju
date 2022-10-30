@@ -3,18 +3,19 @@ import json
 from flask import Flask, request, session, jsonify
 from detail import detail_info, item_list, user_sign
 from flask_cors import CORS
-from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required, JWTManager
+from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity
 from datetime import timedelta
 
-# app
 app = Flask(__name__)
-
-# jwt
-app.config["JWT_SECRET_KEY"] = 'qwlkjduoqlwkejhf1298739184'
-app.config["JWT_ALGORITHM"] = "HS256"
-jwt = JWTManager(app)
+app.config["JWT_SECRET_KEY"] = "key"
+app.config["SECRET_KEY"] = "pass"
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
+app.config["SESSION_TYPE"] = 'filesystem'
+app.config["SESSION_PERMANENT"] = False
+# app.config.from_object(__name__)
 
 CORS(app, resources={r'*': {'origins': 'http://localhost:3000'}}, supports_credentials=True)
+jwt = JWTManager(app)
 
 
 
@@ -55,38 +56,45 @@ def alcohol_list():
 # 로그인 후 세션 넘기기
 @app.route('/signin', methods=["POST"])
 def signin():
-    user_id = request.json['id']
-    user_pw = request.json['pw']
+    user_id = json.loads(request.data)["id"]
+    user_pw = json.loads(request.data)["pw"]
 
     user = user_sign()
     result = user.sign_in(user_id, user_pw)
 
-    # 존재하는 계정이 없는 경우 : 401 Unauthorized
-    if(result == 'False'):
-        return jsonify({"msg": "Bad username or password"}), 401  
-    
-    # 계정이 존재 -> access_token 생성 : 200 OK
-    access_token = create_access_token(identity=user_id)
-    return jsonify(access_token=access_token)
+    if(result != 'False'):
+       session["id"] = result[0]
+       session["c_name"] = result[1]
+       access_token = create_access_token(identity=id)
+       response = app.response_class(response=json.dumps({"access_token": access_token}),
+                                  status=200,
+                                  mimetype='application/json')
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
+
 
 
 
 
 # 회원가입 시 아이디 중복 확인  :  id 넘겨받음
     # 중복되면 return 0 else return 1
-@app.route("/duplicate_check", methods=['POST'])
-def duplicate_check():
+@app.route("/duplicate_id_check", methods=['POST'])
+def duplicate_id_check():
     user_id = request.json['id']
     
     user = user_sign()
-    result = user.duplicate_check(user_id)
+    return jsonify(user.duplicate_id_check(user_id))
 
-    # 아이디 중복 : 409 Conflict
-    if(result == 0):
-        return jsonify({"msg": "이미 사용중인 아이디 입니다."}), 409
+
+
+# 회원가입 시 user_name 중복 확인  :  id 넘겨받음
+    # 중복되면 return 0 else return 1
+@app.route("/duplicate_name_check", methods=['POST'])
+def duplicate_name_check():
+    user_name = request.json['u_name']
     
-    # 중복 X : 200 OK
-    return jsonify({"msg": "사용 가능한 아이디 입니다."})
+    user = user_sign()
+    return jsonify(user.duplicate_name_check(user_name))
 
 
 
@@ -98,6 +106,7 @@ def sign_up():
     user_id = request.json['id']
     user_pw = request.json['pw']
     user_name = request.json['u_name']
+
     user = user_sign()
     return jsonify(user.sign_up(user_id, user_pw, user_name))
 

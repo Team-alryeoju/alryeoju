@@ -1,15 +1,14 @@
-from lib2to3.pgen2 import token
 import pandas as pd
 import numpy as np
 import sqlite3
-import pprint
+from datetime import datetime
 
 token_list = ['감칠맛', '걸쭉함', '견과류_땅콩_잣향', '고소함', '곡물_옥수수_보리', '기타_커피_캐러멜_토란',
-       '깔끔', '꿀맛_당류', '누룩', '다양', '단맛', '독특', '드라이', '레몬_유자류_감귤류_자몽',
-       '매실류_파인애플', '바나나_망고_멜론', '바닐라_국화_매화_연꽃_유채꽃_꽃향', '베리류_딸기', '사과_배_감',
-       '스모키한', '신맛', '여운', '열대과일', '오디_복분자', '오미자류', '음료', '인삼_생강강황_약재',
-       '자두_복숭아_체리', '잔잔한', '조화', '진득', '청_포도', '청량', '탄닌감', '탄산', '풀내음_나무_볏짚',
-       '허브_시트러스', '화끈함']
+            '깔끔', '꿀맛_당류', '누룩', '다양', '단맛', '독특', '드라이', '레몬_유자류_감귤류_자몽',
+            '매실류_파인애플', '바나나_망고_멜론', '바닐라_국화_매화_연꽃_유채꽃_꽃향', '베리류_딸기', '사과_배_감',
+            '스모키한', '신맛', '여운', '열대과일', '오디_복분자', '오미자류', '음료', '인삼_생강강황_약재',
+            '자두_복숭아_체리', '잔잔한', '조화', '진득', '청_포도', '청량', '탄닌감', '탄산', '풀내음_나무_볏짚',
+            '허브_시트러스', '화끈함']
 
 # 디테일 페이지 만들기
 class detail_info:
@@ -17,7 +16,7 @@ class detail_info:
         # max
         # self.conn = sqlite3.connect('./db/alryeoju.db')
         # window  :  mac도 가능한가 확인 좀,,
-        self.conn = sqlite3.connect('./db/alryeoju.db')
+        self.conn = sqlite3.connect('flask-server/db/alryeoju.db')
         self.cursor = self.conn.cursor()
         self.c_id = cid
         self.al_id = alid
@@ -59,7 +58,7 @@ class detail_info:
 
 class item_list:
     def __init__(self, cid):
-        self.conn = sqlite3.connect('./db/alryeoju.db')
+        self.conn = sqlite3.connect('flask-server/db/alryeoju.db')
         self.cursor = self.conn.cursor()
         self.c_id = cid
 
@@ -117,7 +116,7 @@ class item_list:
 
 class user_sign:
     def __init__(self):
-        self.conn = sqlite3.connect('./db/alryeoju.db')
+        self.conn = sqlite3.connect('flask-server/db/alryeoju.db')
         self.cursor = self.conn.cursor()
 
     def sign_in(self, user_sign_id, user_sign_pw):
@@ -131,7 +130,8 @@ class user_sign:
             self.c_name = result[0][3]
             return (self.c_id, self.c_name)
 
-    def duplicate_check(self, c_id):
+
+    def duplicate_id_check(self, c_id):
         query = "select count(*) from users where user_sign_id='" + c_id + "'"
         result = self.cursor.execute(query).fetchall()
 
@@ -139,6 +139,17 @@ class user_sign:
             return 1
         else:
             return 0
+
+
+    def duplicate_name_check(self, c_name):
+        query = "select count(*) from users where u_name='" + c_name + "'"
+        result = self.cursor.execute(query).fetchall()
+
+        if result[0][0] == 0:
+            return 1
+        else:
+            return 0
+
     
     def sign_up(self, user_sign_id, user_sign_pw, u_name):
         query01 = 'select u_id from users order by rowid desc limit 1'
@@ -152,4 +163,59 @@ class user_sign:
             return 1
         except:
             return 0
-        
+
+
+# detail 페이지에서 구매하기 버튼 누르면, but_info에 c_id, al_id, datetime 저장됨
+# 현재시간 - datetime > 14days  =>  detail 페이지에 리뷰 남기기 버튼 존재 (선택)
+# mypage  =>  구매한 아이템 리스트 나열  =>  14일 이전이면, 리뷰 남기기 버튼 o
+class buy:
+    def __init__(self, c_id):
+        self.c_id = c_id
+        self.now = datetime.now()
+        # self.date = str(now.year) + '.' + str(now.month) + '.' + str(now.day) 
+
+        self.conn = sqlite3.connect('flask-server/db/alryeoju.db')
+        self.cursor = self.conn.cursor()
+
+
+    # 사용자 - 아이템 별 리뷰 남길 수 있는지 확인
+    # 16번 사람은 133번을 두 번 마심,,
+    def review_able(self, time):
+        time = datetime.strptime(time, "%Y.%m.%d")
+        print(time)
+        if ((self.now - time).days < 15):
+            return 1
+        else:
+            return 0
+
+    # mypage에서 사용
+    # 사용자 별 구매한 아이템 나열  :  Dataframe 반환  :  json으로 변환해야함
+    def purchase_items(self):
+        query = "select b.u_id, i.al_id, i.al_name, b.datetime from buy_info b, item_info i where b.al_id = i.al_id and b.u_id = " + str(self.c_id)
+        result = pd.DataFrame(self.cursor.execute(query).fetchall(), columns = ['c_id', 'al_id', 'al_name', 'date'])
+
+        # 1이면 리뷰 쓰라는 버튼 나오고, 0이면 안나옴
+        result['review_O'] = result['date'].apply(self.review_able)
+        return result
+
+
+    # detail에서 사용  :  구매한지 15일 미만이면 리뷰 버튼 생성
+    # 버튼 생성해야하면 1, 아니면 0 반환
+    def review_button(self, al_id):
+        query = '''select b.u_id, i.al_id, i.al_name, b.datetime 
+                from buy_info b, item_info i 
+                where b.al_id = i.al_id and b.u_id =''' + str(self.c_id) + ' and i.al_id= ' + str(al_id) + ' order by datetime desc'
+        result = self.cursor.execute(query).fetchone()
+        time = datetime.strptime(result[3], "%Y.%m.%d")
+
+        if (self.now - time).days < 15:
+            return 1
+        else:
+            return 0
+
+
+# 리뷰 작성하는 함수 만들어야함
+
+
+a = buy(16)
+a.purchase_items()
