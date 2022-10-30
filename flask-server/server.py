@@ -76,10 +76,17 @@ def signin():
     # 중복되면 return 0 else return 1
 @app.route("/duplicate_check", methods=['POST'])
 def duplicate_check():
-    user_id = request.form['id']
+    user_id = request.json['id']
     
     user = user_sign()
-    return jsonify(user.duplicate_check(user_id))
+    result = user.duplicate_check(user_id)
+
+    # 아이디 중복 : 409 Conflict
+    if(result == 0):
+        return jsonify({"msg": "이미 사용중인 아이디 입니다."}), 409
+    
+    # 중복 X : 200 OK
+    return jsonify({"msg": "사용 가능한 아이디 입니다."})
 
 
 
