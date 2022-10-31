@@ -14,6 +14,7 @@ token_list = ['감칠맛', '걸쭉함', '견과류_땅콩_잣향', '고소함', 
 class detail_info:
     def __init__(self, cid, alid):
         # max
+        #Mac용
         # self.conn = sqlite3.connect('./db/alryeoju.db')
         # window  :  mac도 가능한가 확인 좀,,
         self.conn = sqlite3.connect('flask-server/db/alryeoju.db')
@@ -58,6 +59,9 @@ class detail_info:
 
 class item_list:
     def __init__(self, cid):
+        # MAC용
+        # self.conn = sqlite3.connect('./db/alryeoju.db')
+        # Window용
         self.conn = sqlite3.connect('flask-server/db/alryeoju.db')
         self.cursor = self.conn.cursor()
         self.c_id = cid
@@ -116,6 +120,9 @@ class item_list:
 
 class user_sign:
     def __init__(self):
+        # MAC용
+        # self.conn = sqlite3.connect('./db/alryeoju.db')
+        # Window용
         self.conn = sqlite3.connect('flask-server/db/alryeoju.db')
         self.cursor = self.conn.cursor()
 
@@ -174,6 +181,9 @@ class buy:
         self.now = datetime.now()
         # self.date = str(now.year) + '.' + str(now.month) + '.' + str(now.day) 
 
+        # MAC용
+        # self.conn = sqlite3.connect('./db/alryeoju.db')
+        # Window용
         self.conn = sqlite3.connect('flask-server/db/alryeoju.db')
         self.cursor = self.conn.cursor()
 
