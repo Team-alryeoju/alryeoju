@@ -9,8 +9,6 @@ from datetime import timedelta
 from dotenv import load_dotenv
 import os 
 
-mySecret = os.environ.get('MySecret')
-
 app = Flask(__name__)
 
 # load .env
@@ -81,6 +79,7 @@ def signin():
 
     # access_token과 user_name을 클라이언트에 전달
     return jsonify({
+        "id" : user_id,
         "name" : user_name,
         "access_token" : access_token
     }), 201
