@@ -75,11 +75,12 @@ def signin():
     # 계정이 존재 -> access_token 생성 : 200 OK
     access_token = create_access_token(identity=user_id)
     # result에 유저 닉네임이 들어있음
-    user_name = result
+    c_id = result[0]
+    user_name = result[1]
 
     # access_token과 user_name을 클라이언트에 전달
     return jsonify({
-        "id" : user_id,
+        "id" : c_id,
         "name" : user_name,
         "access_token" : access_token
     }), 201
