@@ -130,7 +130,7 @@ class user_sign:
         result = self.cursor.execute(query).fetchall()
         
         if len(result) == 0:
-            return 'False'
+            return False
         else:
             self.c_id = result[0][0]
             self.c_name = result[0][3]
