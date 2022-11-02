@@ -13,7 +13,6 @@ token_list = ['감칠맛', '걸쭉함', '견과류_땅콩_잣향', '고소함', 
 # 디테일 페이지 만들기
 class detail_info:
     def __init__(self, cid, alid):
-        # max
         #Mac용
         # self.conn = sqlite3.connect('./db/alryeoju.db')
         # window  :  mac도 가능한가 확인 좀,,
@@ -67,8 +66,7 @@ class item_list:
         self.c_id = cid
 
     def get_top15(self):
-
-        rankings = pd.read_csv('./db/db_csv_data/ranking_new.csv')
+        rankings = pd.read_csv('flask-server/db/db_csv_data/ranking_new.csv')
         rankings_t = rankings.reset_index().drop(columns='index').T
         rankings_t.reset_index(inplace=True)
 
@@ -77,6 +75,7 @@ class item_list:
         rank_df['rank'] = np.arange(1,16)
         # merge를 위해 인덱스 리셋
         rank_df.index = np.arange(1, 16)
+        # 전통주 이름이 안맞아서 top 15를 뽑지 못하는 것 같음,, 이름을 맞춰야겠네
         rank_df['al_name'] = rankings_t[self.c_id][1:16]
         al_name_tuple = tuple(rank_df['al_name'].values.tolist())
 
@@ -175,11 +174,11 @@ class user_sign:
 # detail 페이지에서 구매하기 버튼 누르면, but_info에 c_id, al_id, datetime 저장됨
 # 현재시간 - datetime > 14days  =>  detail 페이지에 리뷰 남기기 버튼 존재 (선택)
 # mypage  =>  구매한 아이템 리스트 나열  =>  14일 이전이면, 리뷰 남기기 버튼 o
+# 구매하기 버튼 누르면 buy_info에 글이 남겨짐
 class buy:
     def __init__(self, c_id):
         self.c_id = c_id
         self.now = datetime.now()
-        # self.date = str(now.year) + '.' + str(now.month) + '.' + str(now.day) 
 
         # MAC용
         # self.conn = sqlite3.connect('./db/alryeoju.db')
@@ -206,7 +205,7 @@ class buy:
 
         # 1이면 리뷰 쓰라는 버튼 나오고, 0이면 안나옴
         result['review_O'] = result['date'].apply(self.review_able)
-        return result
+        return result.T.to_json(force_ascii=False)
 
 
     # detail에서 사용  :  구매한지 15일 미만이면 리뷰 버튼 생성
@@ -224,8 +223,43 @@ class buy:
             return 0
 
 
-# 리뷰 작성하는 함수 만들어야함
+    # 리뷰 작성 버튼 누르고, 별점 눌렀을 때 리뷰 점수 저장됨
+    # 리뷰 점수(<=5) 필요함
+    # 저장되면 return 1 else return 0
+    def write_review(self, al_id, score):
+        query = "select b.u_id, b.al_id, u.u_name, i.al_name from buy_info b, users u, item_info i where b.u_id = u.u_id and b.al_id = i.al_id and u.u_id = ? and i.al_id = ?  order by b.datetime desc"
+        data = (self.c_id, al_id)
+        # c_id, al_id, u_name, al_name
+        result = self.cursor.execute(query, data).fetchone()
+
+        date = str(self.now.year) + '.' + str(self.now.month) + '.' + str(self.now.day) 
+        query = "insert into reviews values(?, ?, ?, ?, ?, ?)"
+        data = (result[0], result[3], result[1], result[2], score, date)
+        try:
+            self.cursor.execute(query, data)
+            self.conn.commit()
+            return 1
+        except:
+            return 0
+
+
+
+
+    # 구매 버튼 누르면 buy_info에 넣음
+    # 넣는 것 성공하면 return 1 else 0
+    def add_purchase(self, al_id):
+        date = str(self.now.year) + '.' + str(self.now.month) + '.' + str(self.now.day) 
+        query = "insert into buy_info values(?, ?, ?)"
+        data = (al_id, self.c_id, date)
+        try:
+            self.cursor.execute(query, data)
+            self.conn.commit()
+            return 1
+        except:
+            return 0
+
+
 
 
 a = buy(16)
-a.purchase_items()
+a.write_review(133, 23)
