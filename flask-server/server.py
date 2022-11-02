@@ -95,7 +95,14 @@ def duplicate_name_check():
     user_name = request.json['u_name']
     
     user = user_sign()
-    return jsonify(user.duplicate_name_check(user_name))
+    result = user.duplicate_name_check(user_name)
+
+    # 닉네임 중복 : 409 Conflict
+    if(result == 0):
+        return jsonify({"msg": "이미 사용중인 닉네임 입니다."}), 409
+    
+    # 중복 X : 200 OK
+    return jsonify({"msg": "사용 가능한 닉네임 입니다."})
 
 
 
@@ -109,14 +116,16 @@ def sign_up():
     user_name = request.json['u_name']
 
     user = user_sign()
-    return jsonify(user.sign_up(user_id, user_pw, user_name))
+    result = user.sign_up(user_id, user_pw, user_name)
+    
+    if(result == 0):
+        return jsonify({"msg": "회원가입에 실패했습니다."}), 400
 
-
-
-@app.route('/logout')
-def logout():
-    session.pop('id', None)
-
+    return jsonify({
+        "id" : user_id,
+        "name" : user_name,
+        "msg" : "회원가입이 성공하였습니다."
+    }), 201
 
 if __name__ == "__main__":
     app.run(debug=True) 
