@@ -130,11 +130,10 @@ class user_sign:
         result = self.cursor.execute(query).fetchall()
         
         if len(result) == 0:
-            return 'False'
+            return False
         else:
-            self.c_id = result[0][0]
             self.c_name = result[0][3]
-            return (self.c_id, self.c_name)
+            return self.c_name
 
 
     def duplicate_id_check(self, c_id):

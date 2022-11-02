@@ -5,12 +5,19 @@ from detail import detail_info, item_list, user_sign, buy
 from flask_cors import CORS
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required, JWTManager
 from datetime import timedelta
+# secret_key 노출을 피하기 위해 .env 파일 생성
+from dotenv import load_dotenv
+import os 
+
+mySecret = os.environ.get('MySecret')
 
 app = Flask(__name__)
 
+# load .env
+load_dotenv()
 # jwt
-app.config["JWT_SECRET_KEY"] = 'qwlkjduoqlwkejhf1298739184'
-app.config["JWT_ALGORITHM"] = "HS256"
+app.config["JWT_SECRET_KEY"] = os.environ.get('JWT_SECRET_KEY')
+app.config["JWT_ALGORITHM"] = os.environ.get('JWT_ALGORITHM')
 jwt = JWTManager(app)
 
 CORS(app, resources={r'*': {'origins': 'http://localhost:3000'}}, supports_credentials=True)
@@ -64,14 +71,19 @@ def signin():
     result = user.sign_in(user_id, user_pw)
 
     # 존재하는 계정이 없는 경우 : 401 Unauthorized
-    if(result == 'False'):
+    if(result == False):
         return jsonify({"msg": "Bad username or password"}), 401  
     
     # 계정이 존재 -> access_token 생성 : 200 OK
     access_token = create_access_token(identity=user_id)
-    # access_token에 user_name도 넣어야하는데;;
-    #####################################
-    return jsonify(access_token=access_token)
+    # result에 유저 닉네임이 들어있음
+    user_name = result
+
+    # access_token과 user_name을 클라이언트에 전달
+    return jsonify({
+        "name" : user_name,
+        "access_token" : access_token
+    }), 201
 
 
 
