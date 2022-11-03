@@ -20,9 +20,6 @@ class detail_info:
         self.cursor = self.conn.cursor()
         self.c_id = cid
         self.al_id = alid
-        query = "select img_link from item_info where al_id = " + str(alid)
-        user_token = self.cursor.execute(query).fetchone()
-        self.img_link = user_token[0]
         
     # 사용자 별 토큰 값 가져오기
     def select_user_token(self, c_id):
@@ -45,16 +42,35 @@ class detail_info:
 
     # 사용자 별 알콜에 대한 토큰 선호도 순위
     def get_token_rank(self):
-        al_token = self.select_al_token(self.al_id)
-        user_token = self.select_user_token(self.c_id)
+        if type(self.c_id) == int:
+            al_token = self.select_al_token(self.al_id)
+            user_token = self.select_user_token(self.c_id)
 
-        al_tokens = al_token.replace(0, np.NAN).dropna().index.to_list()
-        user_token_score = user_token.replace(0, np.NaN).dropna()
-        user_token_score.reset_index(inplace=True)
-        token_seq = user_token_score[user_token_score['index'].isin(al_tokens)].sort_values(by = 'tokens', ascending=False)
-        token_rank = token_seq['index'].values.tolist()
+            al_tokens = al_token.replace(0, np.NAN).dropna().index.to_list()
+            user_token_score = user_token.replace(0, np.NaN).dropna()
+            user_token_score.reset_index(inplace=True)
+            token_seq = user_token_score[user_token_score['index'].isin(al_tokens)].sort_values(by = 'tokens', ascending=False)
+            token_rank = token_seq['index'].values.tolist()
+        else:
+            al_token = self.select_al_token(self.al_id)
+            token_rank = al_token.replace(0, np.NAN).dropna().index.to_list()
+
         return token_rank
     
+    
+    # 알콜 정보를 넘기자
+    def al_info(self):
+        query = """select al_name, category, degree, sweet, acid, light, body, carbon, bitter, tannin, nutty, bright, strength
+                from item_info where al_id = ?"""
+        data = (self.al_id,)
+        result = self.cursor.execute(query, data).fetchall()
+
+        columns_ = ['al_name', 'category', 'degree', 'sweet', 'acid', 'light', 'body', 'carbon', 'bitter', 'tannin', 'nutty', 'bright', 'strength']
+        
+        
+        al_data = pd.DataFrame(data = result, columns = columns_, index=['al_data']).T.to_dict()
+        return al_data
+
 
 class item_list:
     def __init__(self, cid):

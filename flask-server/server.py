@@ -23,19 +23,17 @@ CORS(app, resources={r'*': {'origins': 'http://localhost:3000'}}, supports_crede
 
 # 디테일페이지에서 사용하는 것
 # token_rank는 리스트 형태
-# img_link는 str type
-# 하하하하하하하하하하하핳 아이템 이름을 안넘김 하하하하하하하하하핳
+# al_data 내부 순서  :  ['al_name', 'category', 'degree', 'sweet', 'acid', 'light', 'body', 
+#                        'carbon', 'bitter', 'tannin', 'nutty', 'bright', 'strength']
 @app.route("/detail")
 def detail():
     # 로그인했을 때의 리턴값
     c_id = session["id"]
     al_id = request.args.get('al_id')
     detail_data = detail_info(c_id, al_id)
-    token_rank = detail_data.get_token_rank()  # 주석금지
-    img_link = detail_data.img_link
-    # 로그인 하지 않았을 때는 아이템이 가진 모든 토큰 뱉어내기
-    #############################
-    return jsonify({'token_rank' : token_rank, 'img_link' : img_link})
+    token_rank = detail_data.get_token_rank()  # 주석금
+    al_data = detail_data.al_info()
+    return jsonify({'token_rank' : token_rank, 'al_data' :al_data})
 
 
 
@@ -43,7 +41,7 @@ def detail():
 @app.route("/recomm")
 def recomm():
     c_id = request.args.get('id')
-    recom_data = item_list(c_id)
+    recom_data = item_list(int(c_id))
     # 칼럼 순서  :  'al_name', 'al_id', 'img_link', 'category', 'degree'
     return recom_data.get_top15_json()
 
