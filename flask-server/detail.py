@@ -42,7 +42,8 @@ class detail_info:
 
     # 사용자 별 알콜에 대한 토큰 선호도 순위
     def get_token_rank(self):
-        if type(self.c_id) == int:
+        # 로그인 안했을 때는 c_id가 None
+        if self.c_id != None:
             al_token = self.select_al_token(self.al_id)
             user_token = self.select_user_token(self.c_id)
 
@@ -101,7 +102,8 @@ class item_list:
         al_df = pd.DataFrame(al_token, columns=['al_name', 'al_id', 'img_link', 'category', 'degree'])
 
         rank_df = pd.merge(rank_df, al_df, on='al_name', how='inner')
-        rank_df['c_id'] = self.c_id
+        # c_id는 필요없을 듯
+        # rank_df['c_id'] = self.c_id
 
         return rank_df
 

@@ -28,12 +28,20 @@ CORS(app, resources={r'*': {'origins': 'http://localhost:3000'}}, supports_crede
 @app.route("/detail")
 def detail():
     # 로그인했을 때의 리턴값
-    c_id = session["id"]
+    c_id = request.args.get('id')
     al_id = request.args.get('al_id')
     detail_data = detail_info(c_id, al_id)
     token_rank = detail_data.get_token_rank()  # 주석금
     al_data = detail_data.al_info()
-    return jsonify({'token_rank' : token_rank, 'al_data' :al_data})
+
+    # 원하는 객체 형태로 바꿈
+    ## 술 정보에 id 추가
+    al_data['al_data']['id'] = al_id
+    ## token rank를 al data에 넣음
+    al_data['token_rank'] = token_rank
+    
+    # al_data 가 객체라서 자체를 반환함
+    return jsonify(al_data)
 
 
 
