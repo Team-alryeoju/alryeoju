@@ -2,17 +2,34 @@ import pandas as pd
 import numpy as np
 import sqlite3
 from datetime import datetime
+from sklearn.metrics.pairwise import cosine_similarity
 
-token_list = ['감칠맛', '걸쭉함', '견과류_땅콩_잣향', '고소함', '곡물_옥수수_보리', '기타_커피_캐러멜_토란',
-            '깔끔', '꿀맛_당류', '누룩', '다양', '단맛', '독특', '드라이', '레몬_유자류_감귤류_자몽',
-            '매실류_파인애플', '바나나_망고_멜론', '바닐라_국화_매화_연꽃_유채꽃_꽃향', '베리류_딸기', '사과_배_감',
-            '스모키한', '신맛', '여운', '열대과일', '오디_복분자', '오미자류', '음료', '인삼_생강강황_약재',
-            '자두_복숭아_체리', '잔잔한', '조화', '진득', '청_포도', '청량', '탄닌감', '탄산', '풀내음_나무_볏짚',
-            '허브_시트러스', '화끈함']
+token_list = ['가득한', '가벼운', '가볍게', '가볍고', '간단한', '간장', '감압식', '감압식 증류', '감칠맛', '감칠맛을', '감칠맛이', '강렬한', '강하게', '강하지',
+ '강한', '거친', '고구마', '고구마의', '고기', '고소', '고소하고', '고소한', '고소함과', '고운달', '곡물', '곡물의', '과실', '과실의',
+  '과일', '구수하면서도', '구수한', '국물', '궁합을', '궁합이', '기름진', '기름진 깔끔하게', '기분', '깊은', '깊은 풍미를', '깔끔하게', '깔끔하고', '깔끔한',
+ '냉장', '냉장고에', '냉장고에서', '높고', '높은', '높은 도수를', '높은 도수와', '누룩', '누룩으로', '누룩을', '누룩의', '느끼한', '느끼함을',
+ '다양한', '다채로운', '단맛', '단맛과', '단맛과 산미가', '단맛으로', '단맛은', '단맛을', '단맛이', '달달한', '달지', '달짝지근한', '달콤', '달콤하게',
+ '달콤하고', '달콤하면서도', '달콤한', '달콤함', '달콤함과', '달콤함은', '달콤함이', '담백하고', '담백한', '도수가', '도수를', '도수에', '도수와',
+ '독특한', '독특한 풍미를', '동백꽃', '드라이한', '디저트류와', '디저트와', '딸기', '떫은', '레드', '레몬', '로제', '막걸리', '막걸리는', '막걸리를',
+ '막걸리의', '맑고', '맑은', '매실', '매실의', '매운', '매운맛을', '매콤한', '매콤한 양념이', '무화과', '묵직한', '물과', '물을', '물처럼', '바나나',
+ '바디감과', '바디감을', '바디감이', '발효', '발효를', '발효시켜', '발효와', '발효와 숙성을', '발효한', '배가', '베리류의', '복분자의', '복숭아', '복합적으로',
+ '복합적인', '부드러운', '부드러운 단맛', '부드럽게', '부드럽고', '부드럽고 깔끔한', '붉은', '사과', '사과로', '사과를', '사과의', '사이다', '산뜻하게',
+ '산뜻한', '산미', '산미가', '산미는', '산미를', '산미와', '상온에', '상온에서', '상쾌한', '상큼한', '새콤달콤한', '새콤달콤함이', '새콤한', '생선회',
+ '소주', '소주는', '소주를', '소주와', '소주의', '수제', '숙성', '숙성을', '숙성한', '스위트', '스트레이트로', '스파클링', '시원하게', '시원한', '시트러스',
+ '식욕을', '식전주로', '신맛이', '신선한', '싱그러운', '싱그럽게', '쌀과', '쌀로', '쌀을', '쌀의', '쏘는', '씁쓸한', '씁쓸함이', '아니라', '안주', '안주류와',
+ '안주와', '알싸한', '알코올', '압력을', '압력을 증류하는', '애플', '약주', '약주입니다', '양념', '양념된', '양념이', '양념이 강한', '얼음', '얼음을',
+ '여운을', '여운이', '오미자', '오미자를', '오미자의', '오크', '오크통', '온더락으로', '온도가', '온도에', '온도에서', '올라오는데요', '와인', '와인은',
+ '와인을', '와인의', '와인이에요', '와인인데요', '와인입니다', '원액을', '원주를', '유기농', '육류', '육류나', '육류와', '은은하게', '은은한', '은은한 단맛과',
+ '음식보단', '자극하는', '자두', '자연', '작열감', '작열감과', '작열감도', '작열감을', '작열감이', '저온', '저온 숙성을', '저온에서', '적은', '적절한',
+ '전통주', '조화로운', '주스', '주스처럼', '중후한', '증류', '증류를', '증류식', '증류주', '증류주를', '증류하는', '증류하는 감압식', '증류하여', '증류한',
+ '진득한', '진한', '질감을', '집에서', '짙은', '짭조름한', '짭짤한', '차가운', '차갑게', '찹쌀과', '첨가물', '청량감', '청포도', '치즈', '친구들과', '크라테',
+ '탁주', '탁주는', '탁주의', '탄산', '탄산과', '탄산이', '텁텁한', '투명한', '튀는', '특별한', '특유의', '특징이', '편안하게', '포도', '포도로', '포도를',
+ '포도의', '풍미', '풍미 짙은', '풍미가', '풍미가 짙은', '풍미까지', '풍미는', '풍미를', '풍미와', '풍부하게', '풍부한', '해산물', '향긋한', '화이트', '효모를',
+ 'degree']
 
 # 디테일 페이지 만들기
 class detail_info:
-    def __init__(self, cid, alid):
+    def __init__(self, alid, cid = -1):
         #Mac용
         # self.conn = sqlite3.connect('./db/alryeoju.db')
         # window  :  mac도 가능한가 확인 좀,,
@@ -22,38 +39,40 @@ class detail_info:
         self.al_id = alid
         
     # 사용자 별 토큰 값 가져오기
-    def select_user_token(self, c_id):
-        query = "select * from user_profile where u_id=" +  str(c_id)
+    def select_user_token(self):
+        query = "select * from user_profile where u_id=" +  str(self.c_id)
         user_token = self.cursor.execute(query).fetchall()
         # 리스트 타입 반환
-        df = pd.DataFrame(data = {'tokens':user_token[0][1:]}).replace('', 0)
-        df.index = token_list
+        df = pd.DataFrame(data = {'tokens':user_token[0][2:-1]}).replace('', 0)
+        df.index = token_list[:-1]
         return df
     
     # 아이템 별 토큰 값 가져오기
-    def select_al_token(self, al_id):
-        query = "select * from item_profile where al_id=" +  str(al_id)
+    def select_al_token(self):
+        query = "select * from item_profile where al_id=" +  str(self.al_id)
         al_token = self.cursor.execute(query).fetchall()
+        
         # 리스트 타입 반환  :  0번째는 u_id
-        df = pd.DataFrame(data = {'tokens':al_token[0][1:]}).replace('', 0)
-        df.index = token_list
+        df = pd.DataFrame(data = {'tokens':al_token[0][3:]}).replace('', 0)
+        df.index = token_list[:-1]
         return df
 
 
     # 사용자 별 알콜에 대한 토큰 선호도 순위
     def get_token_rank(self):
         # 로그인 안했을 때는 c_id가 None
-        if self.c_id != None:
-            al_token = self.select_al_token(self.al_id)
-            user_token = self.select_user_token(self.c_id)
+        if self.c_id != -1:
+            al_token = self.select_al_token()
+            user_token = self.select_user_token()
 
             al_tokens = al_token.replace(0, np.NAN).dropna().index.to_list()
             user_token_score = user_token.replace(0, np.NaN).dropna()
             user_token_score.reset_index(inplace=True)
             token_seq = user_token_score[user_token_score['index'].isin(al_tokens)].sort_values(by = 'tokens', ascending=False)
             token_rank = token_seq['index'].values.tolist()
+            token_rank = token_rank + list(set(al_tokens) - set(token_rank))
         else:
-            al_token = self.select_al_token(self.al_id)
+            al_token = self.select_al_token()
             token_rank = al_token.replace(0, np.NAN).dropna().index.to_list()
 
         return token_rank
@@ -61,16 +80,25 @@ class detail_info:
     
     # 알콜 정보를 넘기자
     def al_info(self):
-        query = """select al_name, category, degree, sweet, acid, light, body, carbon, bitter, tannin, nutty, bright, strength
+        query = """select al_id, al_name, category, price, degree, img_link
                 from item_info where al_id = ?"""
         data = (self.al_id,)
         result = self.cursor.execute(query, data).fetchall()
 
-        columns_ = ['al_name', 'category', 'degree', 'sweet', 'acid', 'light', 'body', 'carbon', 'bitter', 'tannin', 'nutty', 'bright', 'strength']
+        columns_ = ['al_id', 'al_name', 'category', 'price', 'degree', 'img_link']
         
         
         al_data = pd.DataFrame(data = result, columns = columns_, index=['al_data']).T.to_dict()
         return al_data
+    
+    
+    # 알콜 토큰 랭크와 정보 취합하기
+    def detail_page(self):
+        token_rank = self.get_token_rank()
+        al_data = self.al_info()
+        al_data['token_rank'] = token_rank
+        return al_data
+
 
 
 class item_list:

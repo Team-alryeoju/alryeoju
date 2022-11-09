@@ -23,25 +23,21 @@ CORS(app, resources={r'*': {'origins': 'http://localhost:3000'}}, supports_crede
 
 # 디테일페이지에서 사용하는 것
 # token_rank는 리스트 형태
-# al_data 내부 순서  :  ['al_name', 'category', 'degree', 'sweet', 'acid', 'light', 'body', 
-#                        'carbon', 'bitter', 'tannin', 'nutty', 'bright', 'strength']
+# al_data 내부
+    # {al_data : { al_id, al_name, category, price, degree, img_link},
+    #  token_rank : [token1, token2, ,,,]}
 @app.route("/detail")
 def detail():
-    # 로그인했을 때의 리턴값
-    c_id = request.args.get('id')
+    c_id = session['id']
     al_id = request.args.get('al_id')
-    detail_data = detail_info(c_id, al_id)
-    token_rank = detail_data.get_token_rank()  # 주석금
-    al_data = detail_data.al_info()
 
-    # 원하는 객체 형태로 바꿈
-    ## 술 정보에 id 추가
-    al_data['al_data']['id'] = al_id
-    ## token rank를 al data에 넣음
-    al_data['token_rank'] = token_rank
+    # c_id가 세션이 있을 땐 사용자용 토큰 순서 리턴
+    if c_id:
+        detail_data = detail_info(cid = c_id, alid = al_id)
+    else:
+        detail_data = detail_info(alid = al_id)
     
-    # al_data 가 객체라서 자체를 반환함
-    return jsonify(al_data)
+    return detail_data.detail_page()
 
 
 
