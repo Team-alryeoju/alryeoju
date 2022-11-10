@@ -77,6 +77,15 @@ class detail_info:
 
         return token_rank
     
+
+    # 아이템 평균 점수
+    def get_score(self, al_id):
+        query = "select al_id, score from reviews where al_id = " + str(al_id)
+        scores = self.cursor.execute(query).fetchall()
+
+        c = pd.DataFrame(data = scores, columns = ['al_id', 'scores'])
+        return c.mean().scores
+
     
     # 알콜 정보를 넘기자
     def al_info(self):
@@ -87,9 +96,10 @@ class detail_info:
 
         columns_ = ['al_id', 'al_name', 'category', 'price', 'degree', 'img_link']
         
+        al_data = pd.DataFrame(data = result, columns = columns_, index=['al_data'])
+        al_data['score'] = al_data.al_id.apply(self.get_score)
         
-        al_data = pd.DataFrame(data = result, columns = columns_, index=['al_data']).T.to_dict()
-        return al_data
+        return al_data.T.to_dict()
     
     
     # 알콜 토큰 랭크와 정보 취합하기
@@ -101,43 +111,98 @@ class detail_info:
 
 
 
+
+# 디테일 페이지 하단부분  :  리뷰 읽기
+class reviews:
+    def __init__(self, al_id):
+        # self.conn = sqlite3.connect('flask-server/db/alryeoju.db')
+        self.conn = sqlite3.connect('./db/alryeoju.db')
+        self.cursor = self.conn.cursor()
+        self.al_id = al_id
+    
+    def get_reviews(self):
+        query = "select u_name, al_name, review, score, datetime from reviews where al_id=" + str(self.al_id)
+        reviews_lst = self.cursor.execute(query).fetchall()
+
+        reviews_df = pd.DataFrame(data = reviews_lst, columns=['u_name', 'al_name', 'review', 'score', 'datetime']).sort_values(by='datetime', ascending=False)
+        
+        return reviews_df.T.to_dict()
+    
+
+
+
+
 class item_list:
-    def __init__(self, cid):
+    def __init__(self, cid = -1):
         # MAC용
         # self.conn = sqlite3.connect('./db/alryeoju.db')
         # Window용
         self.conn = sqlite3.connect('flask-server/db/alryeoju.db')
         self.cursor = self.conn.cursor()
         self.c_id = cid
+    
 
+    # item_profile 읽어서 df로 만들기
+    def item_profile_df(self):
+        query = "select * from item_profile"
+        al_profile = self.cursor.execute(query).fetchall()
+        
+        df = pd.DataFrame(data = al_profile, columns = ['al_id', 'al_name', 'degree'] + token_list[:-1])
+        return df
+
+
+    # 사용자 프로파일에서 특정 사용자 정보 df로 읽기
+    def c_user_profile(self):
+        query = "select * from user_profile where u_id = " + str(self.c_id)
+        user = self.cursor.execute(query).fetchall()
+
+        df = pd.DataFrame(data = user, columns=['u_id', 'u_name'] + token_list)
+        return df
+
+
+    # 상위 15개의 아이템 아이디 반환
+    def get_top15_id(self):
+        user_row = self.c_user_profile()[token_list]
+        item_profile = self.item_profile_df()
+        item_matrix = item_profile[token_list]
+
+        similarity = cosine_similarity(user_row, item_matrix) 
+        # 사용자와 아이템들 간의 유사도를 내림차순으로 정렬하여 상위 15개의 인덱스 추출
+        top_15_idx = np.argsort(similarity[0])[::-1][:15]
+        # 상위 15개의 아이템 아이디
+        top_15_ids = item_profile.loc[top_15_idx].al_id.to_list()
+
+        return top_15_ids
+
+
+    # top15개의 아이템 데이터 반환
     def get_top15(self):
-        rankings = pd.read_csv('flask-server/db/db_csv_data/ranking_new.csv')
-        rankings_t = rankings.reset_index().drop(columns='index').T
-        rankings_t.reset_index(inplace=True)
+        top15_ids = self.get_top15_id()
 
-        rank_df = pd.DataFrame()
-        # 1~15등 rank 칼럼 생성
-        rank_df['rank'] = np.arange(1,16)
-        # merge를 위해 인덱스 리셋
-        rank_df.index = np.arange(1, 16)
-        # 전통주 이름이 안맞아서 top 15를 뽑지 못하는 것 같음,, 이름을 맞춰야겠네
-        rank_df['al_name'] = rankings_t[self.c_id][1:16]
-        al_name_tuple = tuple(rank_df['al_name'].values.tolist())
+        # 상위 순서대로 추출해야해서 for문 돌려야함
+        result = dict()
+        for idx, id in enumerate(top15_ids):
+            detail_data = detail_info(alid=id)
+            result[idx] = detail_data.detail_page()['al_data']
 
-        # top15에 해당하는 알콜 이름으로 쿼리 날림
-        query = "select al_name, al_id, img_link, category, degree from item_info where al_name in " +  str(al_name_tuple)
-        al_token = self.cursor.execute(query).fetchall()
-        al_df = pd.DataFrame(al_token, columns=['al_name', 'al_id', 'img_link', 'category', 'degree'])
+        return result
 
-        rank_df = pd.merge(rank_df, al_df, on='al_name', how='inner')
-        # c_id는 필요없을 듯
-        # rank_df['c_id'] = self.c_id
 
-        return rank_df
+    # c_id = -1일 때 베스트 아이템(리뷰 점수 높은거,,)
+    def best_15(self):
+        query = "select al_id, score from reviews"
+        al_scores = self.cursor.execute(query).fetchall()
+        al_scores_df = pd.DataFrame(al_scores, columns=['al_id', 'score'])
+        best15_al_id = al_scores_df.pivot_table(index='al_id', values='score', aggfunc='mean').sort_values(by='score', ascending=False).reset_index()['al_id'][:15].to_list()
+        
+        # 상위 순서대로 추출해야해서 for문 돌려야함
+        result = dict()
+        for idx, id in enumerate(best15_al_id):
+            detail_data = detail_info(alid=id)
+            result[idx] = detail_data.detail_page()['al_data']
 
-    def get_top15_json(self):
-        rank_df = self.get_top15()
-        return rank_df.T.to_json(force_ascii=False)
+        return result
+
 
     def get_all_alcohols_df(self):
         query = "select al_name, al_id, img_link, category, degree from item_info"
@@ -272,15 +337,10 @@ class buy:
     # 리뷰 작성 버튼 누르고, 별점 눌렀을 때 리뷰 점수 저장됨
     # 리뷰 점수(<=5) 필요함
     # 저장되면 return 1 else return 0
-    def write_review(self, al_id, score):
-        query = "select b.u_id, b.al_id, u.u_name, i.al_name from buy_info b, users u, item_info i where b.u_id = u.u_id and b.al_id = i.al_id and u.u_id = ? and i.al_id = ?  order by b.datetime desc"
-        data = (self.c_id, al_id)
-        # c_id, al_id, u_name, al_name
-        result = self.cursor.execute(query, data).fetchone()
-
+    def write_review(self, c_name, al_id, al_name, review, score):
         date = str(self.now.year) + '.' + str(self.now.month) + '.' + str(self.now.day) 
-        query = "insert into reviews values(?, ?, ?, ?, ?, ?)"
-        data = (result[0], result[3], result[1], result[2], score, date)
+        query = "insert into reviews values(?, ?, ?, ?, ?, ?, ?)"
+        data = (self.c_id, c_name, al_id, al_name, review, score, date)
         try:
             self.cursor.execute(query, data)
             self.conn.commit()
