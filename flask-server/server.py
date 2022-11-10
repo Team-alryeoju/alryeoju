@@ -1,7 +1,7 @@
 #-*- coding:utf-8 -*-
 import json
 from flask import Flask, request, session, jsonify
-from detail import detail_info, item_list, user_sign, buy
+from detail import detail_info, item_list, user_sign, buy, reviews
 from flask_cors import CORS
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required, JWTManager
 from datetime import timedelta
@@ -24,11 +24,11 @@ CORS(app, resources={r'*': {'origins': 'http://localhost:3000'}}, supports_crede
 # 디테일페이지에서 사용하는 것
 # token_rank는 리스트 형태
 # al_data 내부
-    # {al_data : { al_id, al_name, category, price, degree, img_link},
+    # {al_data : { al_id, al_name, category, price, degree, img_link, score},
     #  token_rank : [token1, token2, ,,,]}
 @app.route("/detail")
 def detail():
-    c_id = session['id']
+    c_id = request.args.get('id')
     al_id = request.args.get('al_id')
 
     # c_id가 세션이 있을 땐 사용자용 토큰 순서 리턴
@@ -36,18 +36,90 @@ def detail():
         detail_data = detail_info(cid = c_id, alid = al_id)
     else:
         detail_data = detail_info(alid = al_id)
-    
-    return detail_data.detail_page()
+
+    return jsonify(detail_data.detail_page())
+
+
+
+# 디테일 페이지 하단 부분  :  리뷰 데이터
+    # { # : {'u_name', 'al_name', 'review', 'score', 'datetime'}}
+    # 날짜 순으로 정렬함 => 순서대로 출력하면 됨
+@app.route("/readreviews")
+def read_reviews():
+    al_id = request.args.get('al_id')
+
+    rev = reviews(al_id)
+    return rev.get_reviews()
+
+
+
+
+# detail 에서 사용
+# 리뷰 남기기 버튼을 생성해야하면 1이, 아니면 0이 반환됨
+@app.route('/review_button')
+def review_button():
+    # 로그인 했을 때와 안했을 때를 구분해야함.
+    #######################################################################
+    c_id = session["id"]
+    al_id = request.args.get('al_id')
+
+    review = buy(c_id)
+    return jsonify(review.review_button(al_id))
+
+
+
+
+# 구매버튼 누르면 buy_info 내용에 저장됨
+# c_id, al_id 필요  
+    # c_id는 session에서 가져오고, al_id는 get으로 던져줘,,
+# insert 성공하면 return 1 else return 0
+@app.route('/purchase')
+def purchase():
+    # 로그인 안됐으면 로그인하라는 메세지 발송
+    ##################
+    # 로그인 된 경우
+    c_id = session['id']
+    al_id = request.args.get('al_id')
+
+    pur = buy(c_id)
+    return jsonify(pur.add_purchase(al_id))
+
+
+
+
+
+
+# 리뷰 적는거 성공하면 return 1 else 0
+@app.route('/write_review')
+def write_review():
+    c_id = session['id']
+    c_name = session['name']
+    al_id = request.args.get('al_id')
+    al_name = request.args.get('al_name')
+    review = request.args.get('review')
+    score = request.args.get('score')
+
+
+    rev = buy(c_id)
+    return jsonify(rev.write_review(c_id, c_name, al_id, al_name, review, score))
+
+
 
 
 
 # 사용자별 아이템 15개 추천
+# 내부 구조
+    # { # : {al_id, al_name, category, price, degree, img_link, score}, #:{}, ...}
 @app.route("/recomm")
 def recomm():
     c_id = request.args.get('id')
-    recom_data = item_list(int(c_id))
-    # 칼럼 순서  :  'al_name', 'al_id', 'img_link', 'category', 'degree'
-    return recom_data.get_top15_json()
+
+    if c_id:
+        rec = item_list(cid=c_id)
+        return rec.get_top15()
+    else:
+        rec = item_list()
+        return rec.best_15()
 
 
 
@@ -163,46 +235,6 @@ def purchased_items():
 
 
 
-# detail 에서 사용
-# 리뷰 남기기 버튼을 생성해야하면 1이, 아니면 0이 반환됨
-@app.route('/review_button')
-def review_button():
-    # 로그인 했을 때와 안했을 때를 구분해야함.
-    #######################################################################
-    c_id = session["id"]
-    al_id = request.args.get('al_id')
-
-    review = buy(c_id)
-    return jsonify(review.review_button(al_id))
-
-
-
-
-# 구매버튼 누르면 buy_info 내용에 저장됨
-# c_id, al_id 필요  
-    # c_id는 session에서 가져오고, al_id는 get으로 던져줘,,
-# insert 성공하면 return 1 else return 0
-@app.route('/purchase')
-def purchase():
-    # 로그인 안됐으면 로그인하라는 메세지 발송
-    ##################
-    # 로그인 된 경우
-    c_id = session['id']
-    al_id = request.args.get('al_id')
-
-    pur = buy(c_id)
-    return jsonify(pur.add_purchase(al_id))
-
-
-# 리뷰 적는거 성공하면 return 1 else 0
-@app.route('/write_review')
-def write_review():
-    c_id = session['id']
-    al_id = request.args.get('al_id')
-    score = request.args.get('score')
-
-    rev = buy(c_id)
-    return jsonify(rev.write_review(al_id, score))
 
 
 
