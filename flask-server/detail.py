@@ -367,5 +367,5 @@ class buy:
 
 
 
-a = buy(16)
-a.write_review(133, 23)
+# a = buy(16)
+# a.write_review(133, 23)

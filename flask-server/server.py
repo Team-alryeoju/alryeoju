@@ -28,7 +28,7 @@ CORS(app, resources={r'*': {'origins': 'http://localhost:3000'}}, supports_crede
     #  token_rank : [token1, token2, ,,,]}
 @app.route("/detail")
 def detail():
-    c_id = session['id']
+    c_id = request.args.get('id')
     al_id = request.args.get('al_id')
 
     # c_id가 세션이 있을 땐 사용자용 토큰 순서 리턴
@@ -36,8 +36,8 @@ def detail():
         detail_data = detail_info(cid = c_id, alid = al_id)
     else:
         detail_data = detail_info(alid = al_id)
-    
-    return detail_data.detail_page()
+
+    return jsonify(detail_data.detail_page())
 
 
 
@@ -112,7 +112,7 @@ def write_review():
     # { # : {al_id, al_name, category, price, degree, img_link, score}, #:{}, ...}
 @app.route("/recomm")
 def recomm():
-    c_id = session['id']
+    c_id = request.args.get('id')
 
     if c_id:
         rec = item_list(cid=c_id)
