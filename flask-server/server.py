@@ -105,6 +105,10 @@ def write_review():
     return jsonify(rev.write_review(c_id, c_name, al_id, al_name, review, score))
 
 
+# 디테일 페이지에서 사용
+# 아이템과 비슷한 토큰 분산을 가진 상위 6개 아이템 반환
+# 내부 구조
+    # { # : {al_id, al_name, category, price, degree, img_link, score}, #:{}, ...}
 @app.route('/simitems')
 def simitems():
     al_id = request.args.get('al_id')
@@ -240,9 +244,6 @@ def purchased_items():
 
     items = buy(user_id)
     return items.purchase_items()
-
-
-
 
 
 

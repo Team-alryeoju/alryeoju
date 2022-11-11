@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import pandas as pd
 import numpy as np
 import sqlite3
@@ -129,8 +130,8 @@ class detail_info:
 # 디테일 페이지 하단부분  :  리뷰 읽기
 class reviews:
     def __init__(self, al_id):
-        # self.conn = sqlite3.connect('flask-server/db/alryeoju.db')
-        self.conn = sqlite3.connect('./db/alryeoju.db')
+        self.conn = sqlite3.connect('flask-server/db/alryeoju.db')
+        # self.conn = sqlite3.connect('./db/alryeoju.db')
         self.cursor = self.conn.cursor()
         self.al_id = al_id
     
@@ -148,8 +149,8 @@ class reviews:
 
 class item_list:
     def __init__(self, cid = -1):
-        self.conn = sqlite3.connect('./db/alryeoju.db')
-        # self.conn = sqlite3.connect('flask-server/db/alryeoju.db')
+        # self.conn = sqlite3.connect('./db/alryeoju.db')
+        self.conn = sqlite3.connect('flask-server/db/alryeoju.db')
         self.cursor = self.conn.cursor()
         self.c_id = cid
     
@@ -189,7 +190,7 @@ class item_list:
 
         similarity = cosine_similarity(al_row, item_matrix) 
         # 사용자와 아이템들 간의 유사도를 내림차순으로 정렬하여 상위 15개의 인덱스 추출
-        top_15_idx = np.argsort(similarity[0])[::-1][:6]
+        top_15_idx = np.argsort(similarity[0])[::-1][1:7]
         # 상위 15개의 아이템 아이디
         top_15_ids = item_profile.loc[top_15_idx].al_id.to_list()
 
@@ -282,9 +283,7 @@ class item_list:
 
 class user_sign:
     def __init__(self):
-        # MAC용
         # self.conn = sqlite3.connect('./db/alryeoju.db')
-        # Window용
         self.conn = sqlite3.connect('flask-server/db/alryeoju.db')
         self.cursor = self.conn.cursor()
 
@@ -324,17 +323,25 @@ class user_sign:
         query01 = 'select u_id from users order by rowid desc limit 1'
         last_u_id = self.cursor.execute(query01).fetchall()[0][0]
         
-        query02 = "insert into users (u_id, user_sign_id, user_sign_pw, u_name) values (?, ?, ?, ?)"
-        data = (last_u_id + 1, user_sign_id, user_sign_pw, u_name)
-        try:
-            self.cursor.execute(query02, data)
+        # users 테이블에 행 생성
+        query02 = 'insert into users (u_id, user_sign_id, user_sign_pw, u_name, cnt) values (?, ?, ?, ?, ?)'
+        data02 = (last_u_id + 1, user_sign_id, user_sign_pw, u_name, 0)
+
+        # user_profile 테이블에 행 생성
+        query03 =  'insert into user_profile (u_id , u_name ,가득한 ,가벼운 ,가볍게 ,가볍고 ,간단한 ,간장 ,감압식 ,감압식_증류 ,감칠맛 ,감칠맛을 ,감칠맛이 ,강렬한 ,강하게 ,강하지 ,강한 ,거친 ,고구마 ,고구마의 ,고기 ,고소 ,고소하고 ,고소한 ,고소함과 ,고운달 ,곡물 ,곡물의 ,과실 ,과실의 ,과일 ,구수하면서도 ,구수한 ,국물 ,궁합을 ,궁합이 ,기름진 ,기름진_깔끔하게 ,기분 ,깊은 ,깊은_풍미를 ,깔끔하게 ,깔끔하고 ,깔끔한 ,냉장 ,냉장고에 ,냉장고에서 ,높고 ,높은 ,높은_도수를 ,높은_도수와 ,누룩 ,누룩으로 ,누룩을 ,누룩의 ,느끼한 ,느끼함을 ,다양한 ,다채로운 ,단맛 ,단맛과 ,단맛과_산미가 ,단맛으로 ,단맛은 ,단맛을 ,단맛이 ,달달한 ,달지 ,달짝지근한 ,달콤 ,달콤하게 ,달콤하고,달콤하면서도 ,달콤한 ,달콤함 ,달콤함과 ,달콤함은 ,달콤함이 ,담백하고 ,담백한 ,도수가 ,도수를 ,도수에 ,도수와 ,독특한 ,독특한_풍미를 ,동백꽃 ,드라이한 ,디저트류와 ,디저트와 ,딸기 ,떫은 ,레드 ,레몬 ,로제 ,막걸리 ,막걸리는 ,막걸리를 ,막걸리의 ,맑고 ,맑은 ,매실 ,매실의 ,매운 ,매운맛을 ,매콤한 ,매콤한_양념이 ,무화과 ,묵직한 ,물과 ,물을 ,물처럼 ,바나나 ,바디감과 ,바디감을 ,바디감이,발효 ,발효를 ,발효시켜 ,발효와 ,발효와_숙성을 ,발효한 ,배가 ,베리류의 ,복분자의 ,복숭아 ,복합적으로 ,복합적인 ,부드러운 ,부드러운_단맛 ,부드럽게 ,부드럽고 ,부드럽고_깔끔한 ,붉은 ,사과 ,사과로 ,사과를 ,사과의 ,사이다 ,산뜻하게 ,산뜻한 ,산미 ,산미가 ,산미는 ,산미를 ,산미와 ,상온에 ,상온에서 ,상쾌한 ,상큼한 ,새콤달콤한 ,새콤달콤함이 ,새콤한 ,생선회 ,소주 ,소주는 ,소주를 ,소주와 ,소주의 ,수제 ,숙성 ,숙성을 ,숙성한 ,스위트 ,스트레이트로 ,스파클링 ,시원하게 ,시원한 ,시트러스 ,식욕을 ,식전주로 ,신맛이 ,신선한 ,싱그러운 ,싱그럽게 ,쌀과 ,쌀로 ,쌀을 ,쌀의 ,쏘는 ,씁쓸한 ,씁쓸함이 ,아니라 ,안주 ,안주류와 ,안주와 ,알싸한 ,알코올 ,압력을 ,압력을_증류하는 ,애플 ,약주 ,약주입니다 ,양념 ,양념된 ,양념이 ,양념이_강한 ,얼음 ,얼음을 ,여운을 ,여운이 ,오미자 ,오미자를 ,오미자의 ,오크 ,오크통 ,온더락으로 ,온도가 ,온도에 ,온도에서 ,올라오는데요 ,와인 ,와인은 ,와인을 ,와인의 ,와인이에요 ,와인인데요 ,와인입니다 ,원액을 ,원주를 ,유기농 ,육류 ,육류나 ,육류와 ,은은하게 ,은은한 ,은은한_단맛과 ,음식보단 ,자극하는 ,자두 ,자연 ,작열감 ,작열감과 ,작열감도 ,작열감을 ,작열감이 ,저온 ,저온_숙성을 ,저온에서 ,적은 ,적절한 ,전통주 ,조화로운 ,주스 ,주스처럼 ,중후한 ,증류 ,증류를 ,증류식 ,증류주 ,증류주를 ,증류하는 ,증류하는_감압식 ,증류하여 ,증류한 ,진득한 ,진한 ,질감을 ,집에서 ,짙은 ,짭조름한 ,짭짤한 ,차가운 ,차갑게 ,찹쌀과 ,첨가물 ,청량감 ,청포도 ,치즈 ,친구들과 ,크라테 ,탁주 ,탁주는 ,탁주의 ,탄산 ,탄산과 ,탄산이 ,텁텁한 ,투명한 ,튀는 ,특별한 ,특유의 ,특징이 ,편안하게 ,포도 ,포도로 ,포도를 ,포도의 ,풍미 ,풍미_짙은,풍미가 ,풍미가_짙은 ,풍미까지 ,풍미는 ,풍미를 ,풍미와 ,풍부하게 ,풍부한 ,해산물 ,향긋한 ,화이트 ,효모를 ,degree) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'
+        data03 = (last_u_id + 1, user_sign_id, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
+        try:            
+            self.cursor.execute(query02, data02)
+            self.cursor.execute(query03, data03)
             self.conn.commit()
             return 1
         except:
             return 0
 
 
-# detail 페이지에서 구매하기 버튼 누르면, but_info에 c_id, al_id, datetime 저장됨
+
+
+# detail 페이지에서 구매하기 버튼 누르면, buy_info에 c_id, al_id, datetime 저장됨
 # 현재시간 - datetime > 14days  =>  detail 페이지에 리뷰 남기기 버튼 존재 (선택)
 # mypage  =>  구매한 아이템 리스트 나열  =>  14일 이전이면, 리뷰 남기기 버튼 o
 # 구매하기 버튼 누르면 buy_info에 글이 남겨짐
@@ -343,9 +350,7 @@ class buy:
         self.c_id = c_id
         self.now = datetime.now()
 
-        # MAC용
         # self.conn = sqlite3.connect('./db/alryeoju.db')
-        # Window용
         self.conn = sqlite3.connect('flask-server/db/alryeoju.db')
         self.cursor = self.conn.cursor()
 
@@ -400,7 +405,7 @@ class buy:
         except:
             return 0
 
-
+#################### 리뷰 남기면 uwer_profile 업데이트 하기
 
 
     # 구매 버튼 누르면 buy_info에 넣음
@@ -416,8 +421,3 @@ class buy:
         except:
             return 0
 
-
-
-
-# a = buy(16)
-# a.write_review(133, 23)
