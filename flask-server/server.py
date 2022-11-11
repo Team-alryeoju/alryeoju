@@ -105,6 +105,13 @@ def write_review():
     return jsonify(rev.write_review(c_id, c_name, al_id, al_name, review, score))
 
 
+@app.route('/simitems')
+def simitems():
+    al_id = request.args.get('al_id')
+
+    i = item_list()
+    return i.get_sim_6(al_id)
+
 
 
 

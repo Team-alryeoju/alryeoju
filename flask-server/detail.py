@@ -124,9 +124,6 @@ class detail_info:
             return al_data.T.to_dict()
 
 
-a = detail_info(alid=1225)
-print(a.get_score(1225))
-
 
 
 # 디테일 페이지 하단부분  :  리뷰 읽기
@@ -151,10 +148,8 @@ class reviews:
 
 class item_list:
     def __init__(self, cid = -1):
-        # MAC용
-        # self.conn = sqlite3.connect('./db/alryeoju.db')
-        # Window용
-        self.conn = sqlite3.connect('flask-server/db/alryeoju.db')
+        self.conn = sqlite3.connect('./db/alryeoju.db')
+        # self.conn = sqlite3.connect('flask-server/db/alryeoju.db')
         self.cursor = self.conn.cursor()
         self.c_id = cid
     
@@ -168,6 +163,15 @@ class item_list:
         return df
 
 
+    # 아이템 단일 행 읽기
+    def an_item_profile_df(self, al_id):
+        query = "select * from item_profile where al_id = " + str(al_id)
+        al_row = self.cursor.execute(query).fetchall()
+
+        df = pd.DataFrame(data = al_row, columns = ['al_id', 'al_name', 'degree'] + token_list[:-1])
+        return df
+
+
     # 사용자 프로파일에서 특정 사용자 정보 df로 읽기
     def c_user_profile(self):
         query = "select * from user_profile where u_id = " + str(self.c_id)
@@ -175,6 +179,33 @@ class item_list:
 
         df = pd.DataFrame(data = user, columns=['u_id', 'u_name'] + token_list)
         return df
+
+
+    # 비슷한 술 6개의 아이디
+    def sim_items_6_id(self, al_id):
+        al_row= self.an_item_profile_df(al_id)[token_list]
+        item_profile = self.item_profile_df()
+        item_matrix = item_profile[token_list]
+
+        similarity = cosine_similarity(al_row, item_matrix) 
+        # 사용자와 아이템들 간의 유사도를 내림차순으로 정렬하여 상위 15개의 인덱스 추출
+        top_15_idx = np.argsort(similarity[0])[::-1][:6]
+        # 상위 15개의 아이템 아이디
+        top_15_ids = item_profile.loc[top_15_idx].al_id.to_list()
+
+        return top_15_ids
+
+    # 비슷한 술 6개 아이템 데이터 반환
+    def get_sim_6(self, al_id):
+        sim6_ids = self.sim_items_6_id(al_id)
+
+        # 상위 순서대로 추출해야해서 for문 돌려야함
+        result = dict()
+        for idx, id in enumerate(sim6_ids):
+            detail_data = detail_info(alid=id)
+            result[idx] = detail_data.detail_page(page=2)['al_data']
+
+        return result
 
 
     # 상위 15개의 아이템 아이디 반환
@@ -242,6 +273,8 @@ class item_list:
         else:
             al_df = self.get_alcohols_df_by_category(category)
         return al_df.T.to_json(force_ascii=False)
+
+
 
 
 
