@@ -84,11 +84,14 @@ class detail_info:
         scores = self.cursor.execute(query).fetchall()
 
         c = pd.DataFrame(data = scores, columns = ['al_id', 'scores'])
-        return c.mean().scores
+        if c.empty:
+            return 0
+        else:
+            return c.mean().scores
 
     
     # 알콜 정보를 넘기자
-    def al_info(self):
+    def al_info_df(self):
         query = """select al_id, al_name, category, price, degree, img_link
                 from item_info where al_id = ?"""
         data = (self.al_id,)
@@ -97,18 +100,32 @@ class detail_info:
         columns_ = ['al_id', 'al_name', 'category', 'price', 'degree', 'img_link']
         
         al_data = pd.DataFrame(data = result, columns = columns_, index=['al_data'])
+        return al_data 
+
+
         al_data['score'] = al_data.al_id.apply(self.get_score)
         
         return al_data.T.to_dict()
     
     
     # 알콜 토큰 랭크와 정보 취합하기
-    def detail_page(self):
+    def detail_page(self, page):        
+        # page == 2  :  /recomm => top15함수들에서 호출  =>  score 계산 안함
         token_rank = self.get_token_rank()
-        al_data = self.al_info()
-        al_data['token_rank'] = token_rank
-        return al_data
+        al_data = self.al_info_df()
 
+        # page == 1  :  /detail에서 호출
+        if page == 1:
+            al_data['score'] = al_data.al_id.apply(self.get_score)
+            al_data = al_data.T.to_dict()
+            al_data['token_rank'] = token_rank
+            return al_data
+        if page == 2:
+            return al_data.T.to_dict()
+
+
+a = detail_info(alid=1225)
+print(a.get_score(1225))
 
 
 
@@ -183,7 +200,7 @@ class item_list:
         result = dict()
         for idx, id in enumerate(top15_ids):
             detail_data = detail_info(alid=id)
-            result[idx] = detail_data.detail_page()['al_data']
+            result[idx] = detail_data.detail_page(page=2)['al_data']
 
         return result
 
@@ -199,22 +216,22 @@ class item_list:
         result = dict()
         for idx, id in enumerate(best15_al_id):
             detail_data = detail_info(alid=id)
-            result[idx] = detail_data.detail_page()['al_data']
+            result[idx] = detail_data.detail_page(page=2)['al_data']
 
         return result
 
 
     def get_all_alcohols_df(self):
-        query = "select al_id, al_name, category, price, degree from item_info"
+        query = "select al_id, al_name, category, price, degree, img_link from item_info"
         al_token = self.cursor.execute(query).fetchall()
-        al_df = pd.DataFrame(al_token, columns=['al_id', 'al_name', 'category', 'price', 'degree'])        
+        al_df = pd.DataFrame(al_token, columns=['al_id', 'al_name', 'category', 'price', 'degree', 'img_link'])        
         al_df = al_df.sample(frac=1)
         return al_df
 
     def get_alcohols_df_by_category(self, category):
-        query = "select al_id, al_name, category, price, degree from item_info where category = '" + category + "'"
+        query = "select al_id, al_name, category, price, degree, img_link from item_info where category = '" + category + "'"
         al_token = self.cursor.execute(query).fetchall()
-        al_df = pd.DataFrame(al_token, columns=['al_id', 'al_name', 'category', 'price', 'degree'])        
+        al_df = pd.DataFrame(al_token, columns=['al_id', 'al_name', 'category', 'price', 'degree', 'img_link'])        
         al_df = al_df.sample(frac=1)
         return al_df
     
@@ -225,6 +242,8 @@ class item_list:
         else:
             al_df = self.get_alcohols_df_by_category(category)
         return al_df.T.to_json(force_ascii=False)
+
+
 
 
 

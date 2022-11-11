@@ -10,6 +10,7 @@ from datetime import timedelta
 import os 
 
 app = Flask(__name__)
+app.config['JSON_AS_ASCII']=False
 
 # load .env
 # load_dotenv()
@@ -37,7 +38,7 @@ def detail():
     else:
         detail_data = detail_info(alid = al_id)
 
-    return jsonify(detail_data.detail_page())
+    return jsonify(detail_data.detail_page(page=1))
 
 
 
@@ -124,6 +125,7 @@ def recomm():
 
 
 # 주종 별 알콜 리스트
+# columns : ['al_id', 'al_name', 'category', 'price', 'degree', 'img_link']
 @app.route("/alcohol")
 def alcohol_list():
     category = request.args.get('category')
