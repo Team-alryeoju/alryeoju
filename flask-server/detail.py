@@ -205,16 +205,16 @@ class item_list:
 
 
     def get_all_alcohols_df(self):
-        query = "select al_name, al_id, img_link, category, degree from item_info"
+        query = "select al_id, al_name, category, price, degree from item_info"
         al_token = self.cursor.execute(query).fetchall()
-        al_df = pd.DataFrame(al_token, columns=['al_name', 'al_id', 'img_link', 'category', 'degree'])        
+        al_df = pd.DataFrame(al_token, columns=['al_id', 'al_name', 'category', 'price', 'degree'])        
         al_df = al_df.sample(frac=1)
         return al_df
 
     def get_alcohols_df_by_category(self, category):
-        query = "select al_name, al_id, img_link, category, degree from item_info where category = '" + category + "'"
+        query = "select al_id, al_name, category, price, degree from item_info where category = '" + category + "'"
         al_token = self.cursor.execute(query).fetchall()
-        al_df = pd.DataFrame(al_token, columns=['al_name', 'al_id', 'img_link', 'category', 'degree'])        
+        al_df = pd.DataFrame(al_token, columns=['al_id', 'al_name', 'category', 'price', 'degree'])        
         al_df = al_df.sample(frac=1)
         return al_df
     

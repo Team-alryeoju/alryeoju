@@ -6,13 +6,13 @@ from flask_cors import CORS
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required, JWTManager
 from datetime import timedelta
 # secret_key 노출을 피하기 위해 .env 파일 생성
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 import os 
 
 app = Flask(__name__)
 
 # load .env
-load_dotenv()
+# load_dotenv()
 # jwt
 app.config["JWT_SECRET_KEY"] = os.environ.get('JWT_SECRET_KEY')
 app.config["JWT_ALGORITHM"] = os.environ.get('JWT_ALGORITHM')
@@ -128,7 +128,7 @@ def recomm():
 def alcohol_list():
     category = request.args.get('category')
     # c_id를 요구해서 아무 값이나 넣으면 됨,,
-    item_lst = item_list(-1)
+    item_lst = item_list()
     return item_lst.get_alcohols_json(category)
 
 
