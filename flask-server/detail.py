@@ -226,15 +226,20 @@ class item_list:
 
     # top15개의 아이템 데이터 반환
     def get_top15(self):
-        top15_ids = self.get_top15_id()
+        query = "select cnt from users where u_id = " + str(self.c_id)
+        cnt = self.cursor.execute(query).fetchone()[0]
+        if cnt == 0:
+            return self.best_15()
+        else:
+            top15_ids = self.get_top15_id()
 
-        # 상위 순서대로 추출해야해서 for문 돌려야함
-        result = dict()
-        for idx, id in enumerate(top15_ids):
-            detail_data = detail_info(alid=id)
-            result[idx] = detail_data.detail_page(page=2)['al_data']
+            # 상위 순서대로 추출해야해서 for문 돌려야함
+            result = dict()
+            for idx, id in enumerate(top15_ids):
+                detail_data = detail_info(alid=id)
+                result[idx] = detail_data.detail_page(page=2)['al_data']
 
-        return result
+            return result
 
 
     # c_id = -1일 때 베스트 아이템(리뷰 점수 높은거,,)
@@ -277,7 +282,8 @@ class item_list:
 
 
 
-
+a = item_list(0)
+a.get_top15()
 
 
 
