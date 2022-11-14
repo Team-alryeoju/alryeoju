@@ -3,17 +3,17 @@ import json
 from flask import Flask, request, session, jsonify
 from detail import detail_info, item_list, user_sign, buy, reviews
 from flask_cors import CORS
-from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required, JWTManager
+from flask_jwt_extended import create_access_token, get_jwt, jwt_required, JWTManager
 from datetime import timedelta
 # secret_key 노출을 피하기 위해 .env 파일 생성
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 import os 
 
 app = Flask(__name__)
 app.config['JSON_AS_ASCII']=False
 
 # load .env
-# load_dotenv()
+load_dotenv()
 # jwt
 app.config["JWT_SECRET_KEY"] = os.environ.get('JWT_SECRET_KEY')
 app.config["JWT_ALGORITHM"] = os.environ.get('JWT_ALGORITHM')
@@ -29,14 +29,23 @@ CORS(app, resources={r'*': {'origins': 'http://localhost:3000'}}, supports_crede
     #  token_rank : [token1, token2, ,,,]}
 @app.route("/detail")
 def detail():
-    c_id = request.args.get('id')
+    # 일반적인 술 detail 요청
+    al_id = request.args.get('al_id')
+    detail_data = detail_info(alid = al_id)
+
+    return jsonify(detail_data.detail_page(page=1))
+
+@app.route("/detail_user")
+@jwt_required()
+def detail_user():
+    # 세션에 존재할 때! (jwt가 존재)
+    claims = get_jwt();
+
+    c_id = claims["c_id"]
     al_id = request.args.get('al_id')
 
-    # c_id가 세션이 있을 땐 사용자용 토큰 순서 리턴
-    if c_id:
-        detail_data = detail_info(cid = c_id, alid = al_id)
-    else:
-        detail_data = detail_info(alid = al_id)
+    #사용자용 토큰 순서 리턴
+    detail_data = detail_info(cid = c_id, alid = al_id)
 
     return jsonify(detail_data.detail_page(page=1))
 
@@ -74,16 +83,24 @@ def review_button():
 # c_id, al_id 필요  
     # c_id는 session에서 가져오고, al_id는 get으로 던져줘,,
 # insert 성공하면 return 1 else return 0
-@app.route('/purchase')
+@app.route('/purchase', methods=["POST"])
+@jwt_required()
 def purchase():
     # 로그인 안됐으면 로그인하라는 메세지 발송
     ##################
     # 로그인 된 경우
-    c_id = session['id']
-    al_id = request.args.get('al_id')
+    claims = get_jwt();
+
+    c_id = claims["c_id"]
+    al_id = request.json["al_id"]
 
     pur = buy(c_id)
-    return jsonify(pur.add_purchase(al_id))
+    result = pur.add_purchase(al_id)
+
+    if(result == 0):
+        return jsonify({"msg": "구매에 실패했습니다."}), 400
+    else:
+        return jsonify({"msg" : "구매를 완료하였습니다."}), 201
 
 
 
@@ -124,14 +141,19 @@ def simitems():
     # { # : {al_id, al_name, category, price, degree, img_link, score}, #:{}, ...}
 @app.route("/recomm")
 def recomm():
-    c_id = request.args.get('id')
+    rec = item_list()
+    return rec.best_15()
 
-    if c_id:
-        rec = item_list(cid=c_id)
-        return rec.get_top15()
-    else:
-        rec = item_list()
-        return rec.best_15()
+
+@app.route("/recomm_user")
+@jwt_required()
+def recomm_user():
+    claims = get_jwt();
+
+    c_id = claims["c_id"]
+
+    rec = item_list(cid=c_id)
+    return rec.get_top15()
 
 
 
@@ -160,18 +182,27 @@ def signin():
         return jsonify({"msg": "Bad username or password"}), 401  
     
     # 계정이 존재 -> access_token 생성 : 200 OK
-    access_token = create_access_token(identity=user_id)
     # result에 유저 닉네임이 들어있음
-    c_id = result[0]
-    user_name = result[1]
+    # c_id = result[0]
+    # user_name = result[1]
+    additional_claims = {"c_id": result[0], "user_name": result[1]}
+    access_token = create_access_token(identity=user_id, additional_claims=additional_claims)
 
     # access_token과 user_name을 클라이언트에 전달
     return jsonify({
-        "id" : c_id,
-        "name" : user_name,
+        "user_name": result[1],
         "access_token" : access_token
     }), 201
 
+# 생성된 토큰 검증 후 토큰에 담긴 정보 해독하여 클라이언트로 보내주기
+@app.route("/user_info", methods=["GET"])
+@jwt_required()
+def user_info():
+    claims = get_jwt()
+    return jsonify({
+        "id" : claims["c_id"],
+        "user_name" : claims["user_name"]
+    })
 
 
 
@@ -238,9 +269,12 @@ def sign_up():
 # 사용자가 구매한 아이템 리스트 출력
 # columns  :  'c_id', 'al_id', 'al_name', 'date', 'review_O'
 # 'review_o'의 값이 1이면, 리뷰 남기는 버튼 생성하면 됨
-@app.route('/purchased_items', methods=['POST'])
+@app.route('/purchased_items')
+@jwt_required()
 def purchased_items():
-    user_id = request.json['id']
+    claims = get_jwt();
+
+    user_id = claims["c_id"]
 
     items = buy(user_id)
     return items.purchase_items()
