@@ -22,6 +22,23 @@ jwt = JWTManager(app)
 CORS(app, resources={r'*': {'origins': 'http://localhost:3000'}}, supports_credentials=True)
 
 
+
+
+# 설문조사 결과
+# {al_data : { al_id, al_name, category, price, degree, img_link, score} ,,,} 일걸..?
+@app.route("/survey_list")
+def survey_list():
+    ans1 = request.args.get('ans1')
+    ans2 = request.args.get('ans2')
+    ans3 = request.args.get('ans3')
+    ans4 = request.args.get('ans4')
+    ans5 = request.args.get('ans5')
+
+    lst = item_list()
+    return lst.survey(ans1, ans2, ans3, ans4, ans5)
+
+
+
 # 디테일페이지에서 사용하는 것
 # token_rank는 리스트 형태
 # al_data 내부
