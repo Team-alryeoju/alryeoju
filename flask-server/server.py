@@ -14,9 +14,12 @@ app.config['JSON_AS_ASCII']=False
 
 # load .env
 load_dotenv()
+
 # jwt
 app.config["JWT_SECRET_KEY"] = os.environ.get('JWT_SECRET_KEY')
 app.config["JWT_ALGORITHM"] = os.environ.get('JWT_ALGORITHM')
+## access 토큰 만료시간 - 설정 안하면 15분이 기본임
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
 jwt = JWTManager(app)
 
 CORS(app, resources={r'*': {'origins': 'http://localhost:3000'}}, supports_credentials=True)
@@ -125,19 +128,26 @@ def purchase():
 
 
 # 리뷰 적는거 성공하면 return 1 else 0
-@app.route('/write_review')
+@app.route('/write_review', methods=["POST"])
+@jwt_required()
 def write_review():
-    c_id = session['id']
-    c_name = session['name']
-    al_id = request.args.get('al_id')
-    al_name = request.args.get('al_name')
-    review = request.args.get('review')
-    score = request.args.get('score')
+    claims = get_jwt();
+
+    c_id = claims["c_id"]
+    c_name = claims["user_name"]
+    al_id = request.json['al_id']
+    al_name = request.json['al_name']
+    review = request.json['review']
+    score = request.json['score']
 
 
     rev = buy(c_id)
-    return jsonify(rev.write_review(c_id, c_name, al_id, al_name, review, score))
+    result = rev.write_review(c_id, c_name, al_id, al_name, review, score)
 
+    if(result == 0):
+        return jsonify({"msg": "리뷰 남기기에 실패하였습니다."}), 400
+    else:
+        return jsonify({"user_name" : c_name, "al_name" : al_name}), 201
 
 # 디테일 페이지에서 사용
 # 아이템과 비슷한 토큰 분산을 가진 상위 6개 아이템 반환
@@ -207,7 +217,6 @@ def signin():
 
     # access_token과 user_name을 클라이언트에 전달
     return jsonify({
-        "user_name": result[1],
         "access_token" : access_token
     }), 201
 
@@ -217,7 +226,6 @@ def signin():
 def user_info():
     claims = get_jwt()
     return jsonify({
-        "id" : claims["c_id"],
         "user_name" : claims["user_name"]
     })
 
