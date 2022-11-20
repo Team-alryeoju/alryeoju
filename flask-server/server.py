@@ -142,7 +142,7 @@ def write_review():
 
 
     rev = buy(c_id)
-    result = rev.write_review(c_id, c_name, al_id, al_name, review, score)
+    result = rev.write_review(c_name, al_id, al_name, review, score)
 
     if(result == 0):
         return jsonify({"msg": "리뷰 남기기에 실패하였습니다."}), 400
