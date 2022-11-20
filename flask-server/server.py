@@ -136,7 +136,7 @@ def write_review():
 
 
     rev = buy(c_id)
-    return jsonify(rev.write_review(c_id, c_name, al_id, al_name, review, score))
+    return jsonify(rev.write_review(c_name, al_id, al_name, review, score))
 
 
 # 디테일 페이지에서 사용
