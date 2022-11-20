@@ -131,7 +131,7 @@ def purchase():
 @app.route('/write_review', methods=["POST"])
 @jwt_required()
 def write_review():
-    claims = get_jwt();
+    claims = get_jwt()
 
     c_id = claims["c_id"]
     c_name = claims["user_name"]
