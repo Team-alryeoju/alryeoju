@@ -452,7 +452,7 @@ class buy:
     def write_review(self, c_name, al_id, al_name, review, score):
         date = str(self.now.year) + '.' + str(self.now.month) + '.' + str(self.now.day) 
         query = "insert into reviews values(?, ?, ?, ?, ?, ?, ?)"
-        data = (self.c_id, c_name, al_id, al_name, review, score, date)
+        data = (self.c_id, c_name, al_id, al_name, score, review, date)
         try:
             self.cursor.execute(query, data)
             self.conn.commit()
